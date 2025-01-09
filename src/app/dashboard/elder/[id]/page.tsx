@@ -1,12 +1,10 @@
 import { ElderDashboardComponent } from '@/components/elder-dashboard'
 
-type Props = {
-  params: {
-    id: string;
-  };
-  searchParams: { [key: string]: string | string[] | undefined };
-}
-
-export default function Page({ params }: Props) {
-  return <ElderDashboardComponent elderId={params.id} />
+export default async function Page({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const { id } = await params;
+  return <ElderDashboardComponent elderId={id} />
 } 
