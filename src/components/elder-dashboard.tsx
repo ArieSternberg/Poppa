@@ -14,7 +14,7 @@ import { checkNotificationPermission, requestNotificationPermission, sendTestNot
 import { useMedicationNotifications } from '@/hooks/use-medication-notifications'
 
 interface ElderDashboardProps {
-  elderId: string | Promise<string>
+  elderId: string
 }
 
 interface ElderData {
