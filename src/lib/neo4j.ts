@@ -1,6 +1,18 @@
-import neo4j, { Driver, Transaction, ManagedTransaction } from 'neo4j-driver'
+import neo4j, { Driver, ManagedTransaction } from 'neo4j-driver'
 
 let driver: Driver | null = null
+
+interface MedicationData {
+  name: string
+  [key: string]: string // for future extensibility
+}
+
+interface MedicationSchedule {
+  schedule: string[]
+  pillsPerDose: number[]
+  days: string[]
+  frequency: number
+}
 
 export function initNeo4j() {
     const uri = process.env.NEO4J_URI
@@ -127,7 +139,7 @@ export async function getUser(userId: string) {
 }
 
 // Medication-related queries
-export async function createMedication(medicationData: any) {
+export async function createMedication(medicationData: MedicationData) {
     const cypher = `
         MERGE (m:Medication {name: $name})
         ON CREATE SET m.id = randomUUID()
@@ -147,7 +159,7 @@ export async function createMedication(medicationData: any) {
     }
 }
 
-export async function linkUserToMedication(userId: string, medicationId: string, schedule: any) {
+export async function linkUserToMedication(userId: string, medicationId: string, schedule: MedicationSchedule) {
     const cypher = `
         MATCH (u:User {id: $userId})
         MATCH (m:Medication {id: $medicationId})

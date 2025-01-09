@@ -22,8 +22,7 @@ export const requestNotificationPermission = async () => {
 export const sendNotification = async (title: string, options?: NotificationOptions) => {
   if (Notification.permission === 'granted') {
     try {
-      const registration = await navigator.serviceWorker.ready;
-      await registration.showNotification(title, options);
+      await (await navigator.serviceWorker.ready).showNotification(title, options);
       return true;
     } catch (error) {
       console.error('Error sending notification:', error);
@@ -114,7 +113,7 @@ export const sendTestNotification = () => {
 if (typeof window !== 'undefined') {
   // Register service worker
   navigator.serviceWorker.register('/notification-worker.js')
-    .then(registration => {
+    .then(() => {
       console.log('ServiceWorker registration successful');
     })
     .catch(err => {

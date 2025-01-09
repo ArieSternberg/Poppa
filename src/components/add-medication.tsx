@@ -18,6 +18,12 @@ interface DrugResult {
   generic_name: string
 }
 
+interface FDADrugResult {
+  brand_name: string
+  generic_name: string
+  [key: string]: string // for other fields we don't use
+}
+
 export function AddMedicationComponent() {
   const { user } = useUser()
   const router = useRouter()
@@ -53,7 +59,7 @@ export function AddMedicationComponent() {
       const response = await fetch(`https://api.fda.gov/drug/ndc.json?search=(brand_name:"${query}"+generic_name:"${query}")&limit=5`)
       if (!response.ok) throw new Error('Failed to fetch data')
       const data = await response.json()
-      const results = data.results.map((result: any) => ({
+      const results = data.results.map((result: FDADrugResult) => ({
         brand_name: result.brand_name,
         generic_name: result.generic_name
       }))
@@ -95,15 +101,6 @@ export function AddMedicationComponent() {
   }
 
   const daysOfWeek = ['M', 'T', 'W', 'Th', 'F', 'Sa', 'Su']
-
-  const roundToNearest15Minutes = (timeString: string) => {
-    const [hours, minutes] = timeString.split(':').map(Number)
-    const totalMinutes = hours * 60 + minutes
-    const roundedMinutes = Math.round(totalMinutes / 15) * 15
-    const roundedHours = Math.floor(roundedMinutes / 60)
-    const remainingMinutes = roundedMinutes % 60
-    return `${roundedHours.toString().padStart(2, '0')}:${remainingMinutes.toString().padStart(2, '0')}`
-  }
 
   const renderStep1 = () => (
     <motion.div

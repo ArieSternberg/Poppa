@@ -5,7 +5,6 @@ import Link from 'next/link'
 import Image from 'next/image' 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Header from './Header'
 import { SignInButton, SignUpButton, useAuth, useClerk } from "@clerk/nextjs"
 import { toast } from "sonner"
 
@@ -166,7 +165,7 @@ export function LandingPageComponent() {
             <p className="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">
             Revolutionizing Health Management            </p>
             <p className="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
-            Take control of your loved one's health with Poppa.AI Med Tracking—an AI-driven solution designed to make medical tracking stress-free and efficient.
+            Take control of your loved one&apos;s health with Poppa.AI Med Tracking—an AI-driven solution designed to make medical tracking stress-free and efficient.
             </p>
           </div>
 
@@ -265,7 +264,13 @@ export function LandingPageComponent() {
                 <div key={index} className="bg-white shadow-lg rounded-lg p-8">
                   <div className="flex items-center mb-4">
                     <div className="flex-shrink-0 h-10 w-10">
-                      <img className="h-10 w-10 rounded-full" src={`/placeholder.svg?height=40&width=40`} alt="" />
+                      <Image
+                        src="/images/testimonial1.jpg"
+                        alt="Testimonial 1"
+                        width={40}
+                        height={40}
+                        className="rounded-full"
+                      />
                     </div>
                     <div className="ml-3">
                       <p className="text-sm font-medium text-gray-900">{testimonial.name}</p>
@@ -278,8 +283,8 @@ export function LandingPageComponent() {
                       </div>
                     </div>
                   </div>
-                  <p className="text-gray-600 italic">
-                    "{testimonial.quote}"
+                  <p className="text-gray-600 text-center">
+                    &quot;Take control of your loved one&apos;s health with Poppa.AI Med Tracking&quot;
                   </p>
                 </div>
               ))}

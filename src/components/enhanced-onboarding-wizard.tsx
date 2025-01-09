@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { Search, Plus, Edit2, ChevronRight, ChevronLeft, Pill, User, Phone } from 'lucide-react'
+import { useState } from 'react'
+import { Search, Edit2, ChevronRight, ChevronLeft, Pill, User, Phone } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,6 +12,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { createUser, createMedication, linkUserToMedication, findUserByPhone, createCaretakerRelationship } from '@/lib/neo4j'
 import { useUser } from '@clerk/nextjs'
+import { toast } from "sonner"
+import { useRouter } from 'next/navigation'
 
 interface Medication {
   name: string
@@ -29,16 +31,30 @@ interface DrugResult {
   generic_name: string
 }
 
+interface FDADrugResult {
+  brand_name: string
+  generic_name: string
+  [key: string]: string // for other fields we don't use
+}
+
 interface UserProfile {
   role: 'Elder' | 'Caretaker'
   sex: 'Male' | 'Female' | 'Other'
   age: number
 }
 
+interface ElderUser {
+  id: string
+  firstName: string
+  lastName: string
+  age: number
+  role: 'Elder'
+  phone: string
+}
+
 interface ElderConnection {
   phoneNumber: string
-  elderUser: any | null
-  error: string | null
+  elderUser: ElderUser | null
 }
 
 export function EnhancedOnboardingWizardComponent() {
@@ -67,9 +83,9 @@ export function EnhancedOnboardingWizardComponent() {
   })
   const [elderConnection, setElderConnection] = useState<ElderConnection>({
     phoneNumber: '',
-    elderUser: null,
-    error: null
+    elderUser: null
   })
+  const router = useRouter()
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query)
@@ -86,7 +102,7 @@ export function EnhancedOnboardingWizardComponent() {
       const response = await fetch(`https://api.fda.gov/drug/ndc.json?search=(brand_name:"${query}"+generic_name:"${query}")&limit=5`)
       if (!response.ok) throw new Error('Failed to fetch data')
       const data = await response.json()
-      const results = data.results.map((result: any) => ({
+      const results = data.results.map((result: FDADrugResult) => ({
         brand_name: result.brand_name,
         generic_name: result.generic_name
       }))
@@ -134,73 +150,44 @@ export function EnhancedOnboardingWizardComponent() {
   const daysOfWeek = ['M', 'T', 'W', 'Th', 'F', 'Sa', 'Su']
 
   const handleFinish = async () => {
-    console.log('handleFinish called');
-    if (!user) {
-      console.log('No user found in Clerk context');
-      return;
-    }
-
+    if (!user) return
     try {
-      console.log('Starting user creation with Clerk ID:', user.id);
-      
-      // Get Clerk user data
-      const clerkData = {
+      // Create user profile
+      await createUser(user.id, {
         firstName: user.firstName,
         lastName: user.lastName,
-        emailAddresses: user.emailAddresses.map(email => email.emailAddress),
-        phoneNumbers: user.phoneNumbers.map(phone => phone.phoneNumber)
-      };
+        emailAddresses: [user.primaryEmailAddress?.emailAddress || ''],
+        phoneNumbers: [user.primaryPhoneNumber?.phoneNumber || '']
+      }, userProfile)
 
-      console.log('Formatted Clerk data:', clerkData);
-
-      // Save user profile with combined data
-      console.log('Creating user in Neo4j...');
-      const result = await createUser(user.id, clerkData, {
-        age: userProfile.age,
-        role: userProfile.role,
-        sex: userProfile.sex
-      });
-      console.log('Neo4j user creation result:', result);
-
-      // If user is a caretaker and has selected an elder, create the relationship
-      if (userProfile.role === 'Caretaker' && elderConnection.elderUser) {
-        console.log('Creating caretaker relationship...');
-        await createCaretakerRelationship(user.id, elderConnection.elderUser.id);
-      }
-
-      // Save each medication and link to user
-      console.log('Total medications to create:', medications.length);
+      // Create medications if any
       for (const med of medications) {
-        console.log('Creating medication:', med.name);
-        const [medicationRecord] = await createMedication({ name: med.name });
-        const medicationId = medicationRecord.get('m').properties.id;
-        
+        const [medicationRecord] = await createMedication({ name: med.name })
+        const medicationId = medicationRecord.get('m').properties.id
+
         const schedule = {
           schedule: med.schedule,
           pillsPerDose: med.pillsPerDose,
           days: med.days,
           frequency: med.frequency
-        };
-        
-        console.log('Linking medication', medicationId, 'to user', user.id, 'with schedule:', schedule);
-        await linkUserToMedication(user.id, medicationId, schedule);
+        }
+
+        await linkUserToMedication(user.id, medicationId, schedule)
       }
 
-      console.log('All data saved successfully, redirecting to dashboard...');
-      window.location.href = '/dashboard';
-    } catch (error) {
-      console.error('Error in handleFinish:', error);
-      setError('Failed to save your data. Please try again.');
-    }
-  }
+      // If caretaker, create relationship with elder
+      if (userProfile.role === 'Caretaker' && elderConnection.elderUser) {
+        await createCaretakerRelationship(user.id, elderConnection.elderUser.id)
+      }
 
-  const roundToNearest15Minutes = (timeString: string) => {
-    const [hours, minutes] = timeString.split(':').map(Number)
-    const totalMinutes = hours * 60 + minutes
-    const roundedMinutes = Math.round(totalMinutes / 15) * 15
-    const roundedHours = Math.floor(roundedMinutes / 60)
-    const remainingMinutes = roundedMinutes % 60
-    return `${roundedHours.toString().padStart(2, '0')}:${remainingMinutes.toString().padStart(2, '0')}`
+      toast.success("Profile created successfully!")
+      setError(null)
+      router.push('/dashboard')
+    } catch (err) {
+      console.error('Error creating profile:', err)
+      toast.error("Failed to create profile")
+      setError("Failed to create profile")
+    }
   }
 
   const renderStep1 = () => (
@@ -563,8 +550,7 @@ export function EnhancedOnboardingWizardComponent() {
               // Reset elder connection when switching roles
               setElderConnection({
                 phoneNumber: '',
-                elderUser: null,
-                error: null
+                elderUser: null
               })
             }}
           >
@@ -627,7 +613,9 @@ export function EnhancedOnboardingWizardComponent() {
       className="space-y-4"
     >
       <h2 className="text-2xl font-bold">Connect with Your Elder</h2>
-      <p className="text-gray-600">Enter your elder's phone number to connect with them</p>
+      <p className="text-gray-600 text-center">
+        Enter your elder&apos;s phone number to connect with them
+      </p>
       
       <div className="space-y-4">
         <div className="relative">
@@ -639,8 +627,7 @@ export function EnhancedOnboardingWizardComponent() {
               const phoneNumber = e.target.value
               setElderConnection({
                 phoneNumber,
-                elderUser: null,
-                error: null
+                elderUser: null
               })
               
               if (phoneNumber.length >= 10) {
@@ -649,21 +636,19 @@ export function EnhancedOnboardingWizardComponent() {
                   if (elder && elder.role === 'Elder') {
                     setElderConnection(prev => ({
                       ...prev,
-                      elderUser: elder,
-                      error: null
+                      elderUser: elder
                     }))
                   } else {
                     setElderConnection(prev => ({
                       ...prev,
-                      elderUser: null,
-                      error: 'No elder found with this phone number'
+                      elderUser: null
                     }))
                   }
                 } catch (error) {
+                  console.error('Error searching for elder:', error);
                   setElderConnection(prev => ({
                     ...prev,
-                    elderUser: null,
-                    error: 'Error searching for elder'
+                    elderUser: null
                   }))
                 }
               }
@@ -678,10 +663,6 @@ export function EnhancedOnboardingWizardComponent() {
             <p className="text-green-700">Elder found:</p>
             <p className="font-medium">{elderConnection.elderUser.firstName} {elderConnection.elderUser.lastName}</p>
           </div>
-        )}
-        
-        {elderConnection.error && (
-          <p className="text-red-500">{elderConnection.error}</p>
         )}
       </div>
 
@@ -707,7 +688,11 @@ export function EnhancedOnboardingWizardComponent() {
       className="space-y-4 text-center"
     >
       <h2 className="text-2xl font-bold">Setup Complete!</h2>
-      <p>Thank you for setting up your profile and medications.</p>
+      {error ? (
+        <p className="text-red-500">{error}</p>
+      ) : (
+        <p>Thank you for setting up your profile and medications.</p>
+      )}
       <User className="w-16 h-16 mx-auto text-primary" />
       <div>
         <p><strong>Role:</strong> {userProfile.role}</p>

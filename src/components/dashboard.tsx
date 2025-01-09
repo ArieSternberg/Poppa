@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useUser, useClerk } from '@clerk/nextjs'
 import { motion } from 'framer-motion'
 import { Bell, Settings, LogOut, Clock, Trash2, User, BellOff } from 'lucide-react'
@@ -35,6 +35,23 @@ interface ScheduledDose {
   pillCount: number
 }
 
+interface UserData {
+  id: string
+  role: 'Elder' | 'Caretaker'
+  name?: string
+  phone?: string
+}
+
+interface Elder {
+  id: string
+  firstName: string
+  lastName: string
+  age: number
+  name: string
+  phone: string
+  medications?: Medication[]
+}
+
 export function DashboardComponent() {
   const { user } = useUser()
   const { signOut } = useClerk()
@@ -43,8 +60,8 @@ export function DashboardComponent() {
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [showOnboarding, setShowOnboarding] = useState(false)
-  const [userData, setUserData] = useState<any>(null)
-  const [elders, setElders] = useState<any[]>([])
+  const [userData, setUserData] = useState<UserData | null>(null)
+  const [elders, setElders] = useState<Elder[]>([])
   const [showAddElder, setShowAddElder] = useState(false)
   const [notificationStatus, setNotificationStatus] = useState<string>('default')
   const router = useRouter()
@@ -74,7 +91,7 @@ export function DashboardComponent() {
     notificationStatus === 'granted'
   );
 
-  const checkUserExists = async () => {
+  const checkUserExists = useCallback(async () => {
     if (!user) return
     try {
       const userData = await getUser(user.id)
@@ -92,9 +109,9 @@ export function DashboardComponent() {
       console.error('Error checking user existence:', err)
       setShowOnboarding(true)
     }
-  }
+  }, [user])
 
-  const fetchMedications = async () => {
+  const fetchMedications = useCallback(async () => {
     if (!user) return
     try {
       const meds = await getUserMedications(user.id)
@@ -105,12 +122,14 @@ export function DashboardComponent() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user])
 
   useEffect(() => {
-    checkUserExists()
-    fetchMedications()
-  }, [user])
+    if (user) {
+      checkUserExists()
+      fetchMedications()
+    }
+  }, [user, checkUserExists, fetchMedications])
 
   const handleDelete = async (medicationId: string) => {
     if (!user || !medicationId || deleting) return
@@ -212,7 +231,7 @@ export function DashboardComponent() {
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2, duration: 0.5 }}
             >
-              Welcome, {user?.firstName || 'User'}!
+              Welcome, {user?.firstName || "User"}!
             </motion.h1>
             <div className="flex gap-4">
               <div className="relative">
@@ -266,7 +285,7 @@ export function DashboardComponent() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Today's Schedule</CardTitle>
+              <CardTitle>Today&apos;s Schedule</CardTitle>
             </CardHeader>
             <CardContent>
               {getTodaysMedications().length === 0 ? (
@@ -359,7 +378,7 @@ export function DashboardComponent() {
                   ))}
                   {elders.length === 0 && (
                     <p className="text-gray-500 col-span-2 text-center py-4">
-                      No elders added yet. Click "Add Elder" to connect with an elder.
+                      No elders added yet. Click &quot;Add Elder&quot; to connect with an elder.
                     </p>
                   )}
                 </div>

@@ -6,6 +6,16 @@ import { findUserByPhone, createCaretakerRelationship } from '@/lib/neo4j'
 import { toast } from "sonner"
 import { Phone, User } from 'lucide-react'
 
+interface ElderUser {
+  id: string
+  role: string
+  phone: string
+  firstName: string
+  lastName: string
+  age: number
+  name?: string
+}
+
 interface AddElderModalProps {
   isOpen: boolean
   onClose: () => void
@@ -15,7 +25,7 @@ interface AddElderModalProps {
 
 export function AddElderModal({ isOpen, onClose, caretakerId, onElderAdded }: AddElderModalProps) {
   const [phoneNumber, setPhoneNumber] = useState('')
-  const [elderUser, setElderUser] = useState<any>(null)
+  const [elderUser, setElderUser] = useState<ElderUser | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -75,7 +85,7 @@ export function AddElderModal({ isOpen, onClose, caretakerId, onElderAdded }: Ad
       >
         <h2 className="text-2xl font-bold text-center">Add an Elder</h2>
         <p className="text-gray-600 text-center">
-          Enter the elder's phone number to connect with them
+          Enter the elder&apos;s phone number to connect with them
         </p>
 
         <div className="space-y-4">

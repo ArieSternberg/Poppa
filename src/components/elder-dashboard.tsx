@@ -17,6 +17,15 @@ interface ElderDashboardProps {
   elderId: string | Promise<string>
 }
 
+interface ElderData {
+  id: string
+  firstName: string
+  lastName: string
+  age: number
+  role: 'Elder'
+  phone: string
+}
+
 interface Medication {
   medication: {
     id: string
@@ -41,7 +50,7 @@ export function ElderDashboardComponent({ elderId }: ElderDashboardProps) {
   const [medications, setMedications] = useState<Medication[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [elderData, setElderData] = useState<any>(null)
+  const [elderData, setElderData] = useState<ElderData | null>(null)
   const [resolvedElderId, setResolvedElderId] = useState<string | null>(null)
   const [notificationStatus, setNotificationStatus] = useState<string>('default')
   const router = useRouter()
@@ -186,7 +195,7 @@ export function ElderDashboardComponent({ elderId }: ElderDashboardProps) {
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2, duration: 0.5 }}
             >
-              {elderData.firstName}'s Dashboard
+              {elderData?.firstName}&apos;s Dashboard
             </motion.h1>
           </div>
         </div>
@@ -210,7 +219,7 @@ export function ElderDashboardComponent({ elderId }: ElderDashboardProps) {
               <div className="flex items-center justify-between p-2">
                 <div>
                   {notificationStatus === 'granted' ? (
-                    <p className="text-sm text-green-600 font-medium">✓ Notifications are enabled - You'll receive reminders for your medications</p>
+                    <p className="text-sm text-green-600 font-medium">✓ Notifications are enabled - You&apos;ll receive reminders for your medications</p>
                   ) : notificationStatus === 'denied' ? (
                     <p className="text-sm text-red-600">❌ Notifications are blocked. Please enable them in your browser settings to receive medication reminders.</p>
                   ) : (
@@ -248,7 +257,7 @@ export function ElderDashboardComponent({ elderId }: ElderDashboardProps) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Today's Schedule</CardTitle>
+            <CardTitle>Today&apos;s Schedule</CardTitle>
           </CardHeader>
           <CardContent>
             {getTodaysMedications().length === 0 ? (
