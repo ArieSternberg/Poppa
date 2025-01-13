@@ -1,13 +1,12 @@
 import { ElderDashboardComponent } from '@/components/elder-dashboard'
 
 interface PageProps {
-  params: Promise<{
+  params: {
     id: string;
-  }>;
-  searchParams: { [key: string]: string | string[] | undefined };
+  };
+  searchParams?: { [key: string]: string | string[] | undefined };
 }
 
-export default async function Page({ params}: PageProps) {
-  const { id } = await params;
-  return <ElderDashboardComponent elderId={id} />
+export default function Page({ params }: PageProps) {
+  return <ElderDashboardComponent elderId={params.id} />
 } 
