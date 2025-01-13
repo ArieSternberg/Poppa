@@ -7,7 +7,7 @@ interface PageProps {
   searchParams: { [key: string]: string | string[] | undefined };
 }
 
-export default async function Page({ params, searchParams }: PageProps) {
+export default async function Page({ params}: PageProps) {
   const { id } = await params;
   return <ElderDashboardComponent elderId={id} />
 } 
