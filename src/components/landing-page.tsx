@@ -7,7 +7,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { SignInButton, SignUpButton, useAuth, useClerk } from "@clerk/nextjs"
 import { toast } from "sonner"
-import { RoleSelectionComponent } from './onboarding'
 
 export function LandingPageComponent() {
   const { isSignedIn } = useAuth()
