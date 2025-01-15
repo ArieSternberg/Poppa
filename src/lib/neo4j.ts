@@ -107,6 +107,18 @@ export async function createUser(userId: string, clerkData: {
         console.log('Session created, executing query...')
         const result = await session.run(cypher, { userId, userProfile })
         console.log('Query executed, result:', result)
+        
+        // If no phone number was provided during creation, set up a watcher for phone number updates
+        if (!clerkData.phoneNumbers[0]) {
+            // We'll update the phone number when it becomes available
+            const phoneUpdateCypher = `
+                MATCH (u:User {id: $userId})
+                SET u.pendingPhoneUpdate = true
+                RETURN u
+            `
+            await session.run(phoneUpdateCypher, { userId })
+        }
+        
         if (result.records && result.records[0]) {
             console.log('User node properties:', result.records[0].get('u').properties)
             return result.records

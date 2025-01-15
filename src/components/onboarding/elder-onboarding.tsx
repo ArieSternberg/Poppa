@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, Edit2, ChevronRight, ChevronLeft, Pill, User, Phone } from 'lucide-react'
+import { Search, Edit2, ChevronRight, ChevronLeft, Pill, User } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,54 +10,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { createUser, createMedication, linkUserToMedication, findUserByPhone, createCaretakerRelationship } from '@/lib/neo4j'
+import { createUser, createMedication, linkUserToMedication } from '@/lib/neo4j'
 import { useUser } from '@clerk/nextjs'
 import { toast } from "sonner"
 import { useRouter } from 'next/navigation'
+import { Medication, DrugResult, FDADrugResult, UserProfile } from './types'
 
-interface Medication {
-  name: string
-  brandName: string
-  genericName: string
-  dosage: number
-  frequency: number
-  schedule: string[]
-  pillsPerDose: number[]
-  days: string[]
+interface ElderOnboardingProps {
+  onBack: () => void;
 }
 
-interface DrugResult {
-  brand_name: string
-  generic_name: string
-}
-
-interface FDADrugResult {
-  brand_name: string
-  generic_name: string
-  [key: string]: string // for other fields we don't use
-}
-
-interface UserProfile {
-  role: 'Elder' | 'Caretaker'
-  sex: 'Male' | 'Female' | 'Other'
-  age: number
-}
-
-interface ElderUser {
-  id: string
-  firstName: string
-  lastName: string
-  age: number
-  role: 'Elder'
-  phone: string
-}
-
-interface ElderConnection {
-  phoneNumber: string
-  elderUser: ElderUser | null
-}
-
-export function EnhancedOnboardingWizardComponent() {
+export function ElderOnboardingComponent({ onBack }: ElderOnboardingProps) {
   const { user } = useUser()
   const [step, setStep] = useState(1)
   const [medications, setMedications] = useState<Medication[]>([])
@@ -81,11 +44,8 @@ export function EnhancedOnboardingWizardComponent() {
     sex: 'Male',
     age: 65
   })
-  const [elderConnection, setElderConnection] = useState<ElderConnection>({
-    phoneNumber: '',
-    elderUser: null
-  })
   const router = useRouter()
+  const daysOfWeek = ['M', 'T', 'W', 'Th', 'F', 'Sa', 'Su']
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query)
@@ -134,23 +94,22 @@ export function EnhancedOnboardingWizardComponent() {
       setSelectedDrug(null)
       setSearchQuery('')
       setSearchResults([])
-      setStep(1)
+      setStep(2) // Back to medication search
     }
   }
 
   const handleEditMedication = (index: number) => {
     setCurrentMedication(medications[index])
     setMedications(medications.filter((_, i) => i !== index))
-    setStep(2)
+    setStep(3) // Go to medication details
     setSearchQuery(medications[index].name)
     setSearchResults([])
     setSelectedDrug(medications[index].name)
   }
 
-  const daysOfWeek = ['M', 'T', 'W', 'Th', 'F', 'Sa', 'Su']
-
   const handleFinish = async () => {
     if (!user) return
+
     try {
       // Create user profile
       await createUser(user.id, {
@@ -160,7 +119,7 @@ export function EnhancedOnboardingWizardComponent() {
         phoneNumbers: [user.primaryPhoneNumber?.phoneNumber || '']
       }, userProfile)
 
-      // Create medications if any
+      // Create medications
       for (const med of medications) {
         const [medicationRecord] = await createMedication({ name: med.name })
         const medicationId = medicationRecord.get('m').properties.id
@@ -175,11 +134,6 @@ export function EnhancedOnboardingWizardComponent() {
         await linkUserToMedication(user.id, medicationId, schedule)
       }
 
-      // If caretaker, create relationship with elder
-      if (userProfile.role === 'Caretaker' && elderConnection.elderUser) {
-        await createCaretakerRelationship(user.id, elderConnection.elderUser.id)
-      }
-
       toast.success("Profile created successfully!")
       setError(null)
       router.push('/dashboard')
@@ -190,14 +144,72 @@ export function EnhancedOnboardingWizardComponent() {
     }
   }
 
-  const renderStep1 = () => (
+  const renderUserProfile = () => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       className="space-y-4"
     >
-      <h2 className="text-2xl font-bold">Select Medication</h2>
+      <h2 className="text-2xl font-bold">Tell Us About Yourself</h2>
+      <div className="space-y-4">
+        <div>
+          <Label>Sex</Label>
+          <RadioGroup
+            value={userProfile.sex}
+            onValueChange={(value) => setUserProfile({ ...userProfile, sex: value as 'Male' | 'Female' | 'Other' })}
+            className="mt-2"
+          >
+            <div className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded">
+              <RadioGroupItem value="Male" id="male" />
+              <Label htmlFor="male">Male</Label>
+            </div>
+            <div className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded">
+              <RadioGroupItem value="Female" id="female" />
+              <Label htmlFor="female">Female</Label>
+            </div>
+            <div className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded">
+              <RadioGroupItem value="Other" id="other" />
+              <Label htmlFor="other">Other</Label>
+            </div>
+          </RadioGroup>
+        </div>
+        <div>
+          <Label htmlFor="age">Age</Label>
+          <Input
+            type="number"
+            id="age"
+            value={userProfile.age}
+            onChange={(e) => setUserProfile({ ...userProfile, age: parseInt(e.target.value) || 65 })}
+            min={1}
+            max={120}
+            className="mt-2"
+          />
+        </div>
+        <div className="flex justify-between pt-4">
+          <Button onClick={onBack} variant="outline">
+            <ChevronLeft className="mr-2 h-4 w-4" /> Back
+          </Button>
+          <Button 
+            onClick={() => setStep(2)}
+            disabled={!userProfile.sex || !userProfile.age}
+          >
+            Next <ChevronRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </motion.div>
+  )
+
+  const renderMedicationSearch = () => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-4"
+    >
+      <h2 className="text-2xl font-bold">Select Your Medications</h2>
+      <p className="text-gray-600">Search for your medications by name and add them to your list.</p>
       <div className="relative">
         <Input
           type="text"
@@ -210,7 +222,7 @@ export function EnhancedOnboardingWizardComponent() {
         />
         <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
       </div>
-      {isLoading && <p>Loading...</p>}
+      {isLoading && <p className="text-blue-600">Searching...</p>}
       {error && searchQuery.length >= 3 && <p className="text-red-500">{error}</p>}
       <ul className="mt-2 space-y-2 max-h-60 overflow-y-auto">
         <AnimatePresence>
@@ -236,11 +248,16 @@ export function EnhancedOnboardingWizardComponent() {
                 setSelectedDrug(drugName)
               }}
             >
-              <p className="font-bold">{drug.brand_name || drug.generic_name}</p>
+              <div>
+                <p className="font-bold">{drug.brand_name || drug.generic_name}</p>
+                {drug.generic_name && drug.brand_name && (
+                  <p className="text-sm text-gray-500">{drug.generic_name}</p>
+                )}
+              </div>
               {selectedDrug === (drug.brand_name || drug.generic_name) && (
                 <Button size="sm" variant="outline" onClick={(e) => {
                   e.stopPropagation()
-                  setStep(2)
+                  setStep(3)
                 }}>
                   Add
                 </Button>
@@ -249,27 +266,20 @@ export function EnhancedOnboardingWizardComponent() {
           ))}
         </AnimatePresence>
       </ul>
-      <div className="mt-4 bg-white rounded-lg shadow overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="font-semibold text-primary">Medication</TableHead>
-              <TableHead className="font-semibold text-primary">Daily Takes</TableHead>
-              <TableHead className="font-semibold text-primary">Days</TableHead>
-              <TableHead className="font-semibold text-primary">Edit</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <AnimatePresence>
+      {medications.length > 0 && (
+        <div className="mt-4 bg-white rounded-lg shadow overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="font-semibold text-primary">Medication</TableHead>
+                <TableHead className="font-semibold text-primary">Daily Takes</TableHead>
+                <TableHead className="font-semibold text-primary">Days</TableHead>
+                <TableHead className="font-semibold text-primary">Edit</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {medications.map((med, index) => (
-                <motion.tr
-                  key={index}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2, delay: index * 0.05 }}
-                  className="hover:bg-muted/50"
-                >
+                <TableRow key={index}>
                   <TableCell>{med.name}</TableCell>
                   <TableCell>{med.frequency}</TableCell>
                   <TableCell>{med.days.join(', ')}</TableCell>
@@ -278,26 +288,33 @@ export function EnhancedOnboardingWizardComponent() {
                       <Edit2 className="h-4 w-4 text-primary" />
                     </Button>
                   </TableCell>
-                </motion.tr>
+                </TableRow>
               ))}
-            </AnimatePresence>
-          </TableBody>
-        </Table>
-      </div>
-      <div className="flex justify-end">
-        <Button onClick={() => setStep(5)} variant="secondary">Done</Button>
+            </TableBody>
+          </Table>
+        </div>
+      )}
+      <div className="flex justify-between">
+        <Button onClick={() => setStep(1)} variant="outline">
+          <ChevronLeft className="mr-2 h-4 w-4" /> Back
+        </Button>
+        {medications.length > 0 && (
+          <Button onClick={() => setStep(5)}>
+            Done Adding Medications
+          </Button>
+        )}
       </div>
     </motion.div>
   )
 
-  const renderStep2 = () => (
+  const renderMedicationDetails = () => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       className="space-y-4"
     >
-      <h2 className="text-2xl font-bold">{currentMedication.brandName || currentMedication.genericName}</h2>
+      <h2 className="text-2xl font-bold">Medication Details: {currentMedication.name}</h2>
       <div className="space-y-2">
         <Label htmlFor="dosage">Dosage (mg)</Label>
         <Select
@@ -380,20 +397,27 @@ export function EnhancedOnboardingWizardComponent() {
         </div>
       </div>
       <div className="flex justify-between">
-        <Button onClick={() => setStep(1)} variant="outline"><ChevronLeft className="mr-2 h-4 w-4" /> Back</Button>
-        <Button onClick={() => setStep(3)}>Next <ChevronRight className="ml-2 h-4 w-4" /></Button>
+        <Button onClick={() => setStep(2)} variant="outline">
+          <ChevronLeft className="mr-2 h-4 w-4" /> Back
+        </Button>
+        <Button 
+          onClick={() => setStep(4)}
+          disabled={currentMedication.days.length === 0}
+        >
+          Set Schedule <ChevronRight className="ml-2 h-4 w-4" />
+        </Button>
       </div>
     </motion.div>
   )
 
-  const renderStep3 = () => (
+  const renderSchedule = () => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       className="space-y-4"
     >
-      <h2 className="text-2xl font-bold">Schedule Intake</h2>
+      <h2 className="text-2xl font-bold">Schedule for {currentMedication.name}</h2>
       {currentMedication.schedule.map((time, index) => (
         <motion.div
           key={index}
@@ -507,174 +531,11 @@ export function EnhancedOnboardingWizardComponent() {
         </motion.div>
       ))}
       <div className="flex justify-between">
-        <Button onClick={() => setStep(2)} variant="outline"><ChevronLeft className="mr-2 h-4 w-4" /> Back</Button>
-        <Button onClick={() => {
-          handleAddMedication()
-          setStep(1)
-        }}>Add Medication</Button>
-      </div>
-    </motion.div>
-  )
-
-  const renderConfirmation = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="space-y-4"
-    >
-      <h2 className="text-2xl font-bold">Confirmation</h2>
-      <p>Are you done with all your medications?</p>
-      <div className="flex justify-between">
-        <Button onClick={() => setStep(1)} variant="outline">No, Add More</Button>
-        <Button onClick={() => setStep(6)}>Yes, Proceed</Button>
-      </div>
-    </motion.div>
-  )
-
-  const renderUserProfile = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="space-y-4"
-    >
-      <h2 className="text-2xl font-bold">User Profile Setup</h2>
-      <div className="space-y-4">
-        <div>
-          <Label>Role</Label>
-          <RadioGroup
-            value={userProfile.role}
-            onValueChange={(value) => {
-              setUserProfile({ ...userProfile, role: value as 'Elder' | 'Caretaker' })
-              // Reset elder connection when switching roles
-              setElderConnection({
-                phoneNumber: '',
-                elderUser: null
-              })
-            }}
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="Elder" id="elder" />
-              <Label htmlFor="elder">Elder</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="Caretaker" id="caretaker" />
-              <Label htmlFor="caretaker">Caretaker</Label>
-            </div>
-          </RadioGroup>
-        </div>
-        <div>
-          <Label>Sex</Label>
-          <RadioGroup
-            value={userProfile.sex}
-            onValueChange={(value) => setUserProfile({ ...userProfile, sex: value as 'Male' | 'Female' | 'Other' })}
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="Male" id="male" />
-              <Label htmlFor="male">Male</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="Female" id="female" />
-              <Label htmlFor="female">Female</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="Other" id="other" />
-              <Label htmlFor="other">Other</Label>
-            </div>
-          </RadioGroup>
-        </div>
-        <div>
-          <Label htmlFor="age">Age</Label>
-          <Input
-            type="number"
-            id="age"
-            value={userProfile.age}
-            onChange={(e) => setUserProfile({ ...userProfile, age: parseInt(e.target.value) })}
-            min={1}
-            max={120}
-          />
-        </div>
-      </div>
-      <Button 
-        onClick={() => setStep(userProfile.role === 'Caretaker' ? 6.5 : 7)} 
-        className="w-full"
-      >
-        {userProfile.role === 'Caretaker' ? 'Next' : 'Complete Setup'}
-      </Button>
-    </motion.div>
-  )
-
-  const renderElderConnection = () => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="space-y-4"
-    >
-      <h2 className="text-2xl font-bold">Connect with Your Elder</h2>
-      <p className="text-gray-600 text-center">
-        Enter your elder&apos;s phone number to connect with them
-      </p>
-      
-      <div className="space-y-4">
-        <div className="relative">
-          <Input
-            type="tel"
-            placeholder="Enter phone number"
-            value={elderConnection.phoneNumber}
-            onChange={async (e) => {
-              const phoneNumber = e.target.value
-              setElderConnection({
-                phoneNumber,
-                elderUser: null
-              })
-              
-              if (phoneNumber.length >= 10) {
-                try {
-                  const elder = await findUserByPhone(phoneNumber)
-                  if (elder && elder.role === 'Elder') {
-                    setElderConnection(prev => ({
-                      ...prev,
-                      elderUser: elder
-                    }))
-                  } else {
-                    setElderConnection(prev => ({
-                      ...prev,
-                      elderUser: null
-                    }))
-                  }
-                } catch (error) {
-                  console.error('Error searching for elder:', error);
-                  setElderConnection(prev => ({
-                    ...prev,
-                    elderUser: null
-                  }))
-                }
-              }
-            }}
-            className="pl-10"
-          />
-          <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-        </div>
-        
-        {elderConnection.elderUser && (
-          <div className="p-4 bg-green-50 rounded-lg">
-            <p className="text-green-700">Elder found:</p>
-            <p className="font-medium">{elderConnection.elderUser.firstName} {elderConnection.elderUser.lastName}</p>
-          </div>
-        )}
-      </div>
-
-      <div className="flex justify-between">
-        <Button onClick={() => setStep(6)} variant="outline">
+        <Button onClick={() => setStep(3)} variant="outline">
           <ChevronLeft className="mr-2 h-4 w-4" /> Back
         </Button>
-        <Button 
-          onClick={() => setStep(7)}
-          disabled={!elderConnection.elderUser}
-        >
-          Next <ChevronRight className="ml-2 h-4 w-4" />
+        <Button onClick={handleAddMedication}>
+          Add Medication
         </Button>
       </div>
     </motion.div>
@@ -695,7 +556,6 @@ export function EnhancedOnboardingWizardComponent() {
       )}
       <User className="w-16 h-16 mx-auto text-primary" />
       <div>
-        <p><strong>Role:</strong> {userProfile.role}</p>
         <p><strong>Sex:</strong> {userProfile.sex}</p>
         <p><strong>Age:</strong> {userProfile.age}</p>
       </div>
@@ -744,15 +604,13 @@ export function EnhancedOnboardingWizardComponent() {
           Meds Tracking
         </motion.h1>
         <AnimatePresence mode="wait">
-          {step === 1 && renderStep1()}
-          {step === 2 && renderStep2()}
-          {step === 3 && renderStep3()}
-          {step === 5 && renderConfirmation()}
-          {step === 6 && renderUserProfile()}
-          {step === 6.5 && renderElderConnection()}
-          {step === 7 && renderComplete()}
+          {step === 1 && renderUserProfile()}
+          {step === 2 && renderMedicationSearch()}
+          {step === 3 && renderMedicationDetails()}
+          {step === 4 && renderSchedule()}
+          {step === 5 && renderComplete()}
         </AnimatePresence>
       </motion.div>
     </div>
   )
-}
+} 

@@ -1,5 +1,5 @@
-import { EnhancedOnboardingWizardComponent } from '@/components/enhanced-onboarding-wizard'
+import { RoleSelectionComponent } from '@/components/onboarding'
 
 export default function OnboardingPage() {
-  return <EnhancedOnboardingWizardComponent />
+  return <RoleSelectionComponent />
 } 

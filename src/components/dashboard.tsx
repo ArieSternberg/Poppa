@@ -283,82 +283,86 @@ export function DashboardComponent() {
             </div>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Today&apos;s Schedule</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {getTodaysMedications().length === 0 ? (
-                <p className="text-gray-600">No medications scheduled for today.</p>
-              ) : (
-                <div className="space-y-3">
-                  {getTodaysMedications().map((dose, index) => (
-                    <div key={index} className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50">
-                      <Clock className="h-4 w-4 text-blue-500" />
-                      <span className="font-medium">{formatTime(dose.time)}</span>
-                      <span className="text-gray-600">-</span>
-                      <span>{dose.medicationName}</span>
-                      <span className="text-gray-500">({dose.pillCount} pill{dose.pillCount > 1 ? 's' : ''})</span>
+          {userData?.role === 'Elder' && (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Today&apos;s Schedule</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {getTodaysMedications().length === 0 ? (
+                    <p className="text-gray-600">No medications scheduled for today.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {getTodaysMedications().map((dose, index) => (
+                        <div key={index} className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50">
+                          <Clock className="h-4 w-4 text-blue-500" />
+                          <span className="font-medium">{formatTime(dose.time)}</span>
+                          <span className="text-gray-600">-</span>
+                          <span>{dose.medicationName}</span>
+                          <span className="text-gray-500">({dose.pillCount} pill{dose.pillCount > 1 ? 's' : ''})</span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  )}
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Your Medications</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <p>Loading medications...</p>
-              ) : error ? (
-                <p className="text-red-500">{error}</p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Medication</TableHead>
-                      <TableHead>Dosage</TableHead>
-                      <TableHead>Frequency</TableHead>
-                      <TableHead>Schedule</TableHead>
-                      <TableHead>Days</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {medications.map((med, index) => (
-                      <TableRow key={med.medication.id || index}>
-                        <TableCell className="font-medium">{med.medication.name}</TableCell>
-                        <TableCell>{med.schedule.pillsPerDose[0]} pill(s)</TableCell>
-                        <TableCell>{med.schedule.frequency} time(s) daily</TableCell>
-                        <TableCell>{med.schedule.schedule.map(formatTime).join(', ')}</TableCell>
-                        <TableCell>{med.schedule.days.join(', ')}</TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="hover:bg-red-100 hover:text-red-500 h-8 w-8"
-                            onClick={() => handleDelete(med.medication.id)}
-                            disabled={deleting === med.medication.id}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Your Medications</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <p>Loading medications...</p>
+                  ) : error ? (
+                    <p className="text-red-500">{error}</p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Medication</TableHead>
+                          <TableHead>Dosage</TableHead>
+                          <TableHead>Frequency</TableHead>
+                          <TableHead>Schedule</TableHead>
+                          <TableHead>Days</TableHead>
+                          <TableHead className="w-[50px]"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {medications.map((med, index) => (
+                          <TableRow key={med.medication.id || index}>
+                            <TableCell className="font-medium">{med.medication.name}</TableCell>
+                            <TableCell>{med.schedule.pillsPerDose[0]} pill(s)</TableCell>
+                            <TableCell>{med.schedule.frequency} time(s) daily</TableCell>
+                            <TableCell>{med.schedule.schedule.map(formatTime).join(', ')}</TableCell>
+                            <TableCell>{med.schedule.days.join(', ')}</TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="hover:bg-red-100 hover:text-red-500 h-8 w-8"
+                                onClick={() => handleDelete(med.medication.id)}
+                                disabled={deleting === med.medication.id}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
 
-          <div className="flex justify-center">
-            <Button onClick={() => router.push('/add-medication')}>
-              Add New Medication
-            </Button>
-          </div>
+              <div className="flex justify-center">
+                <Button onClick={() => router.push('/add-medication')}>
+                  Add New Medication
+                </Button>
+              </div>
+            </>
+          )}
 
           {userData?.role === 'Caretaker' && (
             <Card>

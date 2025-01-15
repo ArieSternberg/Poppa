@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Separator } from "@/components/ui/separator"
 import { findUserByPhone, createCaretakerRelationship } from '@/lib/neo4j'
 import { toast } from "sonner"
-import { Phone, User } from 'lucide-react'
+import { Phone, User, Mail } from 'lucide-react'
 
 interface ElderUser {
   id: string
@@ -28,10 +29,14 @@ export function AddElderModal({ isOpen, onClose, caretakerId, onElderAdded }: Ad
   const [elderUser, setElderUser] = useState<ElderUser | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [isInviting, setIsInviting] = useState(false)
+  const [showInvite, setShowInvite] = useState(false)
 
   const handleSearch = async () => {
     if (phoneNumber.length < 10) {
       setError('Please enter a valid phone number')
+      setShowInvite(false)
       return
     }
 
@@ -42,18 +47,40 @@ export function AddElderModal({ isOpen, onClose, caretakerId, onElderAdded }: Ad
       if (elder && elder.role === 'Elder') {
         setElderUser(elder)
         setError(null)
+        setShowInvite(false)
       } else if (elder) {
         setError('This user is not registered as an elder')
         setElderUser(null)
+        setShowInvite(false)
       } else {
         setError('No user found with this phone number')
         setElderUser(null)
+        setShowInvite(true)
       }
     } catch (err) {
       console.error('Error searching for elder:', err)
       setError('Error searching for elder')
+      setShowInvite(false)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleInviteElder = async () => {
+    if (!inviteEmail) return
+    
+    setIsInviting(true)
+    try {
+      // TODO: Implement actual email invitation logic here
+      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulating API call
+      toast.success("Invitation sent successfully!")
+      setInviteEmail('')
+      setShowInvite(false)
+    } catch (err) {
+      console.error('Error sending invitation:', err)
+      toast.error("Failed to send invitation")
+    } finally {
+      setIsInviting(false)
     }
   }
 
@@ -98,6 +125,7 @@ export function AddElderModal({ isOpen, onClose, caretakerId, onElderAdded }: Ad
                 setPhoneNumber(e.target.value)
                 setElderUser(null)
                 setError(null)
+                setShowInvite(false)
               }}
               className="pl-10"
               disabled={loading}
@@ -136,11 +164,45 @@ export function AddElderModal({ isOpen, onClose, caretakerId, onElderAdded }: Ad
             </div>
           )}
 
+          {showInvite && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4"
+            >
+              <Separator className="my-4" />
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold">Invite Your Elder</h3>
+                <p className="text-sm text-gray-600">
+                  Your elder hasn&apos;t registered yet? Send them an invitation to join Poppa.AI Med Tracking.
+                </p>
+                <div className="relative">
+                  <Input
+                    type="email"
+                    placeholder="Enter their email address"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    className="pl-10"
+                    disabled={isInviting}
+                  />
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                </div>
+                <Button 
+                  onClick={handleInviteElder}
+                  className="w-full"
+                  disabled={!inviteEmail || isInviting}
+                >
+                  {isInviting ? 'Sending Invitation...' : 'Send Invitation'}
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
           <div className="flex justify-end pt-4">
             <Button
               variant="outline"
               onClick={onClose}
-              disabled={loading}
+              disabled={loading || isInviting}
             >
               Cancel
             </Button>

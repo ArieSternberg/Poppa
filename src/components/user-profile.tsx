@@ -34,6 +34,13 @@ export function UserProfileComponent() {
       try {
         const userData = await getUser(user.id)
         if (userData) {
+          // If there's a pending phone update and we now have a phone number, update it
+          if (userData.pendingPhoneUpdate && user.primaryPhoneNumber?.phoneNumber) {
+            await updateUser(user.id, {
+              phone: user.primaryPhoneNumber.phoneNumber
+            })
+          }
+          
           setFormData(prev => ({
             ...prev,
             age: userData.age || '',

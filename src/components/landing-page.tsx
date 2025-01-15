@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { SignInButton, SignUpButton, useAuth, useClerk } from "@clerk/nextjs"
 import { toast } from "sonner"
+import { RoleSelectionComponent } from './onboarding'
 
 export function LandingPageComponent() {
   const { isSignedIn } = useAuth()
@@ -22,6 +23,10 @@ export function LandingPageComponent() {
       console.error('Error signing out:', error)
       toast.error("Failed to sign out")
     }
+  }
+
+  const handleTryItNow = () => {
+    router.push('/onboarding')
   }
 
   const HeroImage = () => (
@@ -75,7 +80,7 @@ export function LandingPageComponent() {
                     Dashboard
                   </button>
                   <button 
-                    onClick={() => router.push('/onboarding')}
+                    onClick={handleTryItNow}
                     className="bg-[#00856A] hover:bg-[#006B55] text-white font-bold py-2 px-4 rounded-full transition duration-300 ease-in-out transform hover:scale-105">
                     Try it now!
                   </button>
