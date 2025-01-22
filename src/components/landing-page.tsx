@@ -29,14 +29,14 @@ export function LandingPageComponent() {
   }
 
   const HeroImage = () => (
-    <div className="w-full h-[333px] relative rounded-lg shadow-xl overflow-hidden">
+    <div className="w-full h-[500px] relative rounded-lg shadow-xl overflow-hidden">
       <Image
-        src="/images/aging-parents2.png"
+        src="/images/7fcbbe02-2924-4370-a939-f50b3087977b.jpg"
         alt="Caring for Aging Parents"
-        layout="fixed"
-        objectFit="contain"
-        width={900}
-        height={1000}
+        fill
+        style={{ objectFit: 'cover' }}
+        className="hover:scale-105 transition-transform duration-300"
+        priority
       />
     </div>
   )
@@ -267,15 +267,6 @@ export function LandingPageComponent() {
               ].map((testimonial, index) => (
                 <div key={index} className="bg-white shadow-lg rounded-lg p-8">
                   <div className="flex items-center mb-4">
-                    <div className="flex-shrink-0 h-10 w-10">
-                      <Image
-                        src="/images/testimonial1.jpg"
-                        alt="Testimonial 1"
-                        width={40}
-                        height={40}
-                        className="rounded-full"
-                      />
-                    </div>
                     <div className="ml-3">
                       <p className="text-sm font-medium text-gray-900">{testimonial.name}</p>
                       <div className="flex items-center">
@@ -288,7 +279,7 @@ export function LandingPageComponent() {
                     </div>
                   </div>
                   <p className="text-gray-600 text-center">
-                    &quot;Take control of your loved one&apos;s health with Poppa.AI Med Tracking&quot;
+                    {testimonial.quote}
                   </p>
                 </div>
               ))}
