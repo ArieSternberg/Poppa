@@ -54,11 +54,39 @@ export default function PrivacyPolicy() {
 
           <h3 className="text-xl font-semibold mb-2">How do we process your information?</h3>
           <p className="mb-4">
-            We process your information to provide, improve, and administer our Services, communicate with you, for
-            security and fraud prevention, and to comply with law. We may also process your information for other
-            purposes with your consent. We process your information only when we have a valid legal reason to do so.
-            Learn more about how we process your information.
+            <em>
+              In Short: We process your information to provide, improve, and administer our Services, communicate with
+              you, for security and fraud prevention, and to comply with law. We may also process your information for
+              other purposes with your consent.
+            </em>
           </p>
+          <p className="mb-4">
+            We process your personal information for a variety of reasons, depending on how you interact with our
+            Services, including:
+          </p>
+          <ul className="list-disc list-inside mb-4">
+            <li>
+              To facilitate account creation and authentication and otherwise manage user accounts. We may process
+              your information so you can create and log in to your account, as well as keep your account in working
+              order.
+            </li>
+            <li>
+              To deliver and facilitate delivery of services to the user. We may process your information to provide
+              you with the requested service.
+            </li>
+            <li>
+              To respond to user inquiries/offer support to users. We may process your information to respond to your
+              inquiries and solve any potential issues you might have with the requested service.
+            </li>
+            <li>
+              To enable user-to-user communications. We may process your information if you choose to use any of our
+              offerings that allow for communication with another user.
+            </li>
+            <li>
+              To request feedback. We may process your information when necessary to request feedback and to contact
+              you about your use of our Services.
+            </li>
+          </ul>
 
           <h3 className="text-xl font-semibold mb-2">
             In what situations and with which parties do we share personal information?
@@ -252,10 +280,10 @@ export default function PrivacyPolicy() {
                 address, device information, browser type, and settings and information about your activity in the
                 Services (such as the date/time stamps associated with your usage, pages and files viewed, searches, and
                 other actions you take such as which features you use), device event information (such as system
-                activity, error reports (sometimes called "crash dumps"), and hardware settings).
+                activity, error reports (sometimes called &quot;crash dumps&quot;), and hardware settings).
               </li>
               <li>
-                <strong>Location Data.</strong> We collect location data such as information about your device's
+                <strong>Location Data.</strong> We collect location data such as information about your device&apos;s
                 location, which can be either precise or imprecise. How much information we collect depends on the type
                 and settings of the device you use to access the Services. For example, we may use GPS and other
                 technologies to collect geolocation data that tells us your current location (based on your IP address).
@@ -379,10 +407,10 @@ export default function PrivacyPolicy() {
               websites.
             </p>
             <p className="mb-4">
-              To the extent these online tracking technologies are deemed to be a "sale"/"sharing" (which includes
+              To the extent these online tracking technologies are deemed to be a &quot;sale&quot;/&quot;sharing&quot; (which includes
               targeted advertising, as defined under the applicable laws) under applicable US state laws, you can opt
-              out of these online tracking technologies by submitting a request as described below under section "DO
-              UNITED STATES RESIDENTS HAVE SPECIFIC PRIVACY RIGHTS?"
+              out of these online tracking technologies by submitting a request as described below under section &quot;DO
+              UNITED STATES RESIDENTS HAVE SPECIFIC PRIVACY RIGHTS?&quot;
             </p>
             <p className="mb-4">
               Specific information about how we use such technologies and how you can refuse certain cookies is set out
@@ -400,16 +428,16 @@ export default function PrivacyPolicy() {
             </p>
             <p className="mb-4">
               As part of our Services, we offer products, features, or tools powered by artificial intelligence, machine
-              learning, or similar technologies (collectively, "AI Products"). These tools are designed to enhance your
+              learning, or similar technologies (collectively, &quot;AI Products&quot;). These tools are designed to enhance your
               experience and provide you with innovative solutions. The terms in this Privacy Notice govern your use of
               the AI Products within our Services.
             </p>
             <h3 className="text-xl font-semibold mb-2">Use of AI Technologies</h3>
             <p className="mb-4">
-              We provide the AI Products through third-party service providers ("AI Service Providers"), including
+              We provide the AI Products through third-party service providers (&quot;AI Service Providers&quot;), including
               OpenAI. As outlined in this Privacy Notice, your input, output, and personal information will be shared
               with and processed by these AI Service Providers to enable your use of our AI Products for purposes
-              outlined in "WHEN AND WITH WHOM DO WE SHARE YOUR PERSONAL INFORMATION?" You must not use the AI Products
+              outlined in &quot;WHEN AND WITH WHOM DO WE SHARE YOUR PERSONAL INFORMATION?&quot; You must not use the AI Products
               in any way that violates the terms or policies of any AI Service Provider.
             </p>
             <h3 className="text-xl font-semibold mb-2">Our AI Products</h3>
@@ -425,7 +453,7 @@ export default function PrivacyPolicy() {
             <p className="mb-4">
               All personal information processed using our AI Products is handled in line with our Privacy Notice and
               our agreement with third parties. This ensures high security and safeguards your personal information
-              throughout the process, giving you peace of mind about your data's safety.
+              throughout the process, giving you peace of mind about your data&apos;s safety.
             </p>
           </section>
 
@@ -447,8 +475,8 @@ export default function PrivacyPolicy() {
             </p>
             <p className="mb-4">
               If you log in using Facebook, we may also request access to other permissions related to your account,
-              such as your friends, check-ins, and likes, and you may choose to grant or deny us access to each
-              individual permission.
+              such as friends, check-ins, and likes, and you may choose to grant or deny us access to each individual
+              permission.
             </p>
             <p className="mb-4">
               We will use the information we receive only for the purposes that are described in this Privacy Notice or
@@ -509,7 +537,7 @@ export default function PrivacyPolicy() {
             <p className="mb-4">
               We do not knowingly collect, solicit data from, or market to children under 18 years of age, nor do we
               knowingly sell such personal information. By using the Services, you represent that you are at least 18 or
-              that you are the parent or guardian of such a minor and consent to such minor dependent's use of the
+              that you are the parent or guardian of such a minor and consent to such minor dependent&apos;s use of the
               Services. If we learn that personal information from users less than 18 years of age has been collected,
               we will deactivate the account and take reasonable measures to promptly delete such data from our records.
               If you become aware of any data we may have collected from children under age 18, please contact us at
@@ -532,7 +560,7 @@ export default function PrivacyPolicy() {
               (ii) to request rectification or erasure; (iii) to restrict the processing of your personal information;
               and (iv) if applicable, to data portability. In certain circumstances, you may also have the right to
               object to the processing of your personal information. You can make such a request by contacting us by
-              using the contact details provided in the section "HOW CAN YOU CONTACT US ABOUT THIS NOTICE?" below.
+              using the contact details provided in the section &quot;HOW CAN YOU CONTACT US ABOUT THIS NOTICE?&quot; below.
             </p>
             <p className="mb-4">
               To the extent that applicable law requires, we will grant individuals the rights concerning their personal
@@ -543,7 +571,7 @@ export default function PrivacyPolicy() {
           <section id="section11">
             <h2 className="text-2xl font-semibold mb-4">11. CONTROLS FOR DO-NOT-TRACK FEATURES</h2>
             <p className="mb-4">
-              Most web browsers and some mobile operating systems and mobile applications include a Do-Not-Track ("DNT")
+              Most web browsers and some mobile operating systems and mobile applications include a Do-Not-Track (&quot;DNT&quot;)
               feature or setting you can activate to signal your privacy preference not to have data about your online
               browsing activities monitored and collected. At this stage, no uniform technology standard for recognizing
               and implementing DNT signals has been finalized. As such, we do not currently respond to DNT browser
@@ -560,7 +588,7 @@ export default function PrivacyPolicy() {
             </p>
             <p className="mb-4">
               We may update this Privacy Notice from time to time. The updated version will be indicated by an updated
-              "Revised" date and the updated version will be effective as soon as it is accessible. If we make material
+              &quot;Revised&quot; date and the updated version will be effective as soon as it is accessible. If we make material
               changes to this Privacy Notice, we may notify you either by prominently posting a notice of such changes
               or by directly sending you a notification. We encourage you to review this Privacy Notice frequently to be
               informed of how we are protecting your information.

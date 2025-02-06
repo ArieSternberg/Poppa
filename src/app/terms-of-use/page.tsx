@@ -68,7 +68,7 @@ export default function TermsOfUse() {
           <ul className="list-disc list-inside mb-4">
             <li>Do not engage in activities that disrupt or interfere with the functionality of the platform.</li>
             <li>Avoid providing false or misleading information.</li>
-            <li>Do not attempt to access other users' accounts or the platform's backend without authorization.</li>
+            <li>Do not attempt to access other users&apos; accounts or the platform&apos;s backend without authorization.</li>
             <li>Refrain from spamming or sending harmful or offensive messages.</li>
           </ul>
           <p className="mb-4">
@@ -91,7 +91,7 @@ export default function TermsOfUse() {
           <h2 className="text-2xl font-semibold mb-4">8. Intellectual Property</h2>
           <p className="mb-4">
             Poppa.AI owns all intellectual property rights to the platform, including its design, technology, and
-            software. Unauthorized modification, distribution, or commercial use of the platform's content is
+            software. Unauthorized modification, distribution, or commercial use of the platform&apos;s content is
             prohibited.
           </p>
 
