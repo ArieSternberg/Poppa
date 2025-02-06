@@ -229,7 +229,7 @@ export default function PrivacyPolicy() {
               We may provide you with the option to register with us using your existing social media account details,
               like your Facebook, X, or other social media account. If you choose to register in this way, we will
               collect certain profile information about you from the social media provider, as described in the section
-              called "HOW DO WE HANDLE YOUR SOCIAL LOGINS?" below.
+              called &quot;HOW DO WE HANDLE YOUR SOCIAL LOGINS?&quot; below.
             </p>
             <h4 className="text-lg font-semibold mb-2">Application Data.</h4>
             <p className="mb-4">
@@ -240,7 +240,7 @@ export default function PrivacyPolicy() {
               <li>
                 <strong>Push Notifications.</strong> We may request to send you push notifications regarding your
                 account or certain features of the application(s). If you wish to opt out from receiving these types of
-                communications, you may turn them off in your device's settings.
+                communications, you may turn them off in your device&apos;s settings.
               </li>
             </ul>
             <p className="mb-4">
@@ -254,8 +254,8 @@ export default function PrivacyPolicy() {
             <h3 className="text-xl font-semibold mb-2">Information automatically collected</h3>
             <p className="mb-4">
               <em>
-                In Short: Some information — such as your Internet Protocol (IP) address and/or browser and device
-                characteristics — is collected automatically when you visit our Services.
+                In Short: Some information &ndash; such as your Internet Protocol (IP) address and/or browser and device
+                characteristics &ndash; is collected automatically when you visit our Services.
               </em>
             </p>
             <p className="mb-4">
