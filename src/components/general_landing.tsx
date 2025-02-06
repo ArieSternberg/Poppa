@@ -3,17 +3,14 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
-  Calendar,
   Brain,
   CheckCircle,
-  Heart,
   Users,
   Lightbulb,
   Facebook,
   Twitter,
   Instagram,
   Linkedin,
-  LucideIcon,
 } from "lucide-react"
 import { ReactElement } from "react"
 

@@ -9,19 +9,19 @@ export default function TermsOfUse() {
         <div className="bg-white rounded-lg shadow-md p-8">
           <h2 className="text-2xl font-semibold mb-4">1. Introduction</h2>
           <p className="mb-4">
-            Welcome to Poppa.AI, a service provided by Poppa Services Inc.! These Terms of Use ("Terms") govern your
+            Welcome to Poppa.AI, a service provided by Poppa Services Inc.! These Terms of Use (&quot;Terms&quot;) govern your
             access to and use of our services, including our website, web app, SMS, and WhatsApp communications. By
             accessing or using our services, you agree to comply with these Terms, our Privacy Policy, and any other
-            guidelines provided. If you disagree with any part of these Terms, you must refrain from using Poppa.AI
+            guidelines provided. If you don&apos;t agree with any part of these Terms, you must refrain from using Poppa.AI
             services.
           </p>
 
           <h2 className="text-2xl font-semibold mb-4">2. Definitions</h2>
           <ul className="list-disc list-inside mb-4">
-            <li>"Platform": Refers to the Poppa.AI website, web app, SMS, and WhatsApp communication systems.</li>
-            <li>"User": Any individual using the platform, including Senior Parents and Caregivers.</li>
-            <li>"Content": All information provided through the platform, including reminders, and communications.</li>
-            <li>"Services": Refers to all Poppa.AI functionalities, features, and products.</li>
+            <li>&quot;Platform&quot;: Refers to the Poppa.AI website, web app, SMS, and WhatsApp communication systems.</li>
+            <li>&quot;User&quot;: Any individual using the platform, including Senior Parents and Caregivers.</li>
+            <li>&quot;Content&quot;: All information provided through the platform, including reminders, and communications.</li>
+            <li>&quot;Services&quot;: Refers to all Poppa.AI functionalities, features, and products.</li>
           </ul>
 
           <h2 className="text-2xl font-semibold mb-4">3. Eligibility</h2>

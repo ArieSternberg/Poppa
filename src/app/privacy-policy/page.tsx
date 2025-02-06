@@ -9,9 +9,9 @@ export default function PrivacyPolicy() {
         <div className="bg-white rounded-lg shadow-md p-8">
           <p className="mb-4">Last updated January 15, 2025</p>
           <p className="mb-4">
-            This Privacy Notice for Poppa Services Inc. ("we," "us," or "our"), describes how and why we might access,
-            collect, store, use, and/or share ("process") your personal information when you use our services
-            ("Services"), including when you:
+            This Privacy Notice for Poppa Services Inc. (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;), describes how and why we might access,
+            collect, store, use, and/or share (&quot;process&quot;) your personal information when you use our services
+            (&quot;Services&quot;), including when you:
           </p>
           <ul className="list-disc list-inside mb-4">
             <li>
@@ -27,8 +27,8 @@ export default function PrivacyPolicy() {
           <h2 className="text-2xl font-semibold mb-4">Questions or concerns?</h2>
           <p className="mb-4">
             Reading this Privacy Notice will help you understand your privacy rights and choices. We are responsible for
-            making decisions about how your personal information is processed. If you do not agree with our policies and
-            practices, please do not use our Services. If you still have any questions or concerns, please contact us at
+            making decisions about how your personal information is processed. If you don&apos;t agree with our policies and
+            practices, please don&apos;t use our Services. If you still have any questions or concerns, please contact us at
             info@poppacare.com
           </p>
 
@@ -284,7 +284,7 @@ export default function PrivacyPolicy() {
               we receive personal information about you from such platforms such as your name, email address, and
               gender. You may have the right to withdraw your consent to processing your personal information. Learn
               more about withdrawing your consent. Any personal information that we collect from your social media
-              account depends on your social media account's privacy settings. Please note that their own use of your
+              account depends on your social media account&apos;s privacy settings. Please note that their own use of your
               information is not governed by this Privacy Notice.
             </p>
             <p className="mb-4">
