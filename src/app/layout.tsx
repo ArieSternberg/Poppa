@@ -7,8 +7,8 @@ import { Toaster } from "sonner"
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Poppa.AI - Med Tracking',
-  description: 'AI-powered medication tracking for your loved ones',
+  title: 'Poppa Virtual Concierge',
+  description: 'AI-powered virtual concierge for your loved ones',
 }
 
 export default function RootLayout({
