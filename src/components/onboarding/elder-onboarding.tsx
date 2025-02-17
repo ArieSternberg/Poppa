@@ -10,11 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { createUser, createMedication, linkUserToMedication } from '@/lib/neo4j'
+import { createUser, linkUserToMedication, searchMedications, DrugResult } from '@/lib/neo4j'
 import { useUser } from '@clerk/nextjs'
 import { toast } from "sonner"
 import { useRouter } from 'next/navigation'
-import { Medication, DrugResult, FDADrugResult, UserProfile } from './types'
+import { Medication, UserProfile } from './types'
 
 interface ElderOnboardingProps {
   onBack: () => void;
@@ -25,6 +25,7 @@ export function ElderOnboardingComponent({ onBack }: ElderOnboardingProps) {
   const [step, setStep] = useState(1)
   const [medications, setMedications] = useState<Medication[]>([])
   const [currentMedication, setCurrentMedication] = useState<Medication>({
+    id: '',
     name: '',
     brandName: '',
     genericName: '',
@@ -49,7 +50,7 @@ export function ElderOnboardingComponent({ onBack }: ElderOnboardingProps) {
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query)
-    if (query.length < 3) {
+    if (query.length < 2) {
       setSearchResults([])
       setError(null)
       return
@@ -59,13 +60,7 @@ export function ElderOnboardingComponent({ onBack }: ElderOnboardingProps) {
     setError(null)
 
     try {
-      const response = await fetch(`https://api.fda.gov/drug/ndc.json?search=(brand_name:"${query}"+generic_name:"${query}")&limit=5`)
-      if (!response.ok) throw new Error('Failed to fetch data')
-      const data = await response.json()
-      const results = data.results.map((result: FDADrugResult) => ({
-        brand_name: result.brand_name,
-        generic_name: result.generic_name
-      }))
+      const results = await searchMedications(query)
       setSearchResults(results)
       if (results.length === 0) {
         setError("Can't find that medication, sorry")
@@ -82,6 +77,7 @@ export function ElderOnboardingComponent({ onBack }: ElderOnboardingProps) {
     if (currentMedication.name) {
       setMedications([...medications, currentMedication])
       setCurrentMedication({
+        id: '',
         name: '',
         brandName: '',
         genericName: '',
@@ -119,11 +115,8 @@ export function ElderOnboardingComponent({ onBack }: ElderOnboardingProps) {
         phoneNumbers: [user.primaryPhoneNumber?.phoneNumber || '']
       }, userProfile)
 
-      // Create medications
+      // Link to existing medications
       for (const med of medications) {
-        const [medicationRecord] = await createMedication({ name: med.name })
-        const medicationId = medicationRecord.get('m').properties.id
-
         const schedule = {
           schedule: med.schedule,
           pillsPerDose: med.pillsPerDose,
@@ -131,7 +124,7 @@ export function ElderOnboardingComponent({ onBack }: ElderOnboardingProps) {
           frequency: med.frequency
         }
 
-        await linkUserToMedication(user.id, medicationId, schedule)
+        await linkUserToMedication(user.id, med.id, schedule)
       }
 
       toast.success("Profile created successfully!")
@@ -201,29 +194,26 @@ export function ElderOnboardingComponent({ onBack }: ElderOnboardingProps) {
     </motion.div>
   )
 
-  const renderMedicationSearch = () => (
+  const renderStep1 = () => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       className="space-y-4"
     >
-      <h2 className="text-2xl font-bold">Select Your Medications</h2>
-      <p className="text-gray-600">Search for your medications by name and add them to your list.</p>
+      <h2 className="text-2xl font-bold">Select Medication</h2>
       <div className="relative">
         <Input
           type="text"
           placeholder="Search for medication"
           value={searchQuery}
-          onChange={(e) => {
-            handleSearch(e.target.value)
-          }}
+          onChange={(e) => handleSearch(e.target.value)}
           className="pr-10"
         />
         <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
       </div>
-      {isLoading && <p className="text-blue-600">Searching...</p>}
-      {error && searchQuery.length >= 3 && <p className="text-red-500">{error}</p>}
+      {isLoading && <p>Loading...</p>}
+      {error && searchQuery.length >= 2 && <p className="text-red-500">{error}</p>}
       <ul className="mt-2 space-y-2 max-h-60 overflow-y-auto">
         <AnimatePresence>
           {searchResults.map((drug, index) => (
@@ -234,27 +224,27 @@ export function ElderOnboardingComponent({ onBack }: ElderOnboardingProps) {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2, delay: index * 0.05 }}
               className={`p-2 hover:bg-gray-100 cursor-pointer rounded flex justify-between items-center ${
-                selectedDrug === (drug.brand_name || drug.generic_name) ? 'bg-blue-100' : ''
+                selectedDrug === drug.name ? 'bg-blue-100' : ''
               }`}
               onClick={() => {
-                const drugName = drug.brand_name || drug.generic_name
                 setCurrentMedication({
                   ...currentMedication,
-                  name: drugName,
-                  brandName: drug.brand_name,
-                  genericName: drug.generic_name
+                  id: drug.id,
+                  name: drug.name,
+                  brandName: drug.brandName,
+                  genericName: drug.genericName
                 })
-                setSearchQuery(drugName)
-                setSelectedDrug(drugName)
+                setSearchQuery(drug.name)
+                setSelectedDrug(drug.name)
               }}
             >
               <div>
-                <p className="font-bold">{drug.brand_name || drug.generic_name}</p>
-                {drug.generic_name && drug.brand_name && (
-                  <p className="text-sm text-gray-500">{drug.generic_name}</p>
+                <p className="font-bold">{drug.name}</p>
+                {drug.genericName && (
+                  <p className="text-sm text-gray-500">{drug.genericName}</p>
                 )}
               </div>
-              {selectedDrug === (drug.brand_name || drug.generic_name) && (
+              {selectedDrug === drug.name && (
                 <Button size="sm" variant="outline" onClick={(e) => {
                   e.stopPropagation()
                   setStep(3)
@@ -266,6 +256,19 @@ export function ElderOnboardingComponent({ onBack }: ElderOnboardingProps) {
           ))}
         </AnimatePresence>
       </ul>
+    </motion.div>
+  )
+
+  const renderMedicationSearch = () => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-4"
+    >
+      <h2 className="text-2xl font-bold">Select Your Medications</h2>
+      <p className="text-gray-600">Search for your medications by name and add them to your list.</p>
+      {renderStep1()}
       {medications.length > 0 && (
         <div className="mt-4 bg-white rounded-lg shadow overflow-hidden">
           <Table>

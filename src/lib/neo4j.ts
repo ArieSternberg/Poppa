@@ -14,6 +14,20 @@ interface MedicationSchedule {
   frequency: number
 }
 
+export interface DrugResult {
+  id: string
+  name: string
+  brandName: string
+  genericName: string
+}
+
+interface MedicationDue {
+  userId: string;
+  name: string;
+  phone: string;
+  scheduledTime: string;
+}
+
 export function initNeo4j() {
     const uri = process.env.NEO4J_URI
     const username = process.env.NEO4J_USERNAME
@@ -415,4 +429,117 @@ export const recordMedicationStatus = async (
   } finally {
     await session.close();
   }
-}; 
+};
+
+export async function searchMedications(query: string): Promise<DrugResult[]> {
+  const cypher = `
+    MATCH (m:Medication)
+    WHERE toLower(m.name) CONTAINS toLower($query)
+    RETURN m.id as id, m.name as name, m.brandName as brandName, m.genericName as genericName
+    LIMIT 5
+  `
+  const session = await getSession()
+  try {
+    const result = await session.run(cypher, { query })
+    return result.records.map(record => ({
+      id: record.get('id'),
+      name: record.get('name'),
+      brandName: record.get('brandName'),
+      genericName: record.get('genericName')
+    }))
+  } finally {
+    await session.close()
+  }
+}
+
+export async function getMedicationsDue(minutesAhead: number): Promise<MedicationDue[]> {
+  if (!driver) {
+    driver = initNeo4j();
+  }
+  const session = driver.session();
+  try {
+    const now = new Date();
+    const end = new Date(now.getTime() + minutesAhead * 60000);
+    const currentDay = now.toLocaleDateString('en-US', { weekday: 'short' });
+    
+    // First, let's see what medications exist at all
+    console.log('Debug - Checking all medications and their schedules...');
+    const checkResult = await session.run(`
+      MATCH (u:User)-[r:TAKES]->(m:Medication)
+      RETURN 
+        u.id as userId,
+        m.name as name,
+        r.days as days,
+        r.schedule as schedule
+    `);
+    
+    console.log('Debug - All medications:', checkResult.records.map(record => ({
+      userId: record.get('userId'),
+      name: record.get('name'),
+      days: record.get('days'),
+      schedule: record.get('schedule')
+    })));
+
+    // Convert day abbreviations
+    const dayMap: { [key: string]: string } = {
+      'Mon': 'M',
+      'Tue': 'T',
+      'Wed': 'W',
+      'Thu': 'Th',
+      'Fri': 'F',
+      'Sat': 'Sa',
+      'Sun': 'Su'
+    };
+
+    // Convert times to minutes since midnight for easier comparison
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const endMinutes = end.getHours() * 60 + end.getMinutes();
+
+    console.log('Debug - Time window:', {
+      currentDay,
+      mappedDay: dayMap[currentDay],
+      nowMinutes,
+      endMinutes,
+      now: now.toLocaleTimeString(),
+      end: end.toLocaleTimeString()
+    });
+
+    const result = await session.run(`
+      MATCH (u:User)-[r:TAKES]->(m:Medication)
+      UNWIND r.schedule as time
+      WITH u, m, r, time,
+        toInteger(split(time, ':')[0]) * 60 + toInteger(split(time, ':')[1]) as scheduleMinutes
+      WHERE 
+        // First check days
+        (r.days = ['Everyday'] OR r.days = [$currentDay])
+        // Then check time window
+        AND scheduleMinutes > $nowMinutes - 1 
+        AND scheduleMinutes < $endMinutes + 1
+      RETURN DISTINCT
+        u.id as userId,
+        m.name as name,
+        u.phone as phone,
+        r.schedule as scheduledTime,
+        r.days as days,
+        scheduleMinutes
+    `, {
+      currentDay: dayMap[currentDay],
+      nowMinutes,
+      endMinutes
+    });
+
+    const medications = result.records.map(record => ({
+      userId: record.get('userId'),
+      name: record.get('name'),
+      phone: record.get('phone'),
+      scheduledTime: record.get('scheduledTime'),
+      days: record.get('days'),
+      scheduleMinutes: record.get('scheduleMinutes')
+    }));
+
+    console.log('Debug - Found medications:', medications);
+    return medications;
+  } finally {
+    await session.close();
+  }
+} 

@@ -3,15 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { motion } from 'framer-motion'
-import { ChevronLeft, Clock, Bell, BellOff } from 'lucide-react'
+import { ChevronLeft, Clock } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { getElderMedications, getUser } from '@/lib/neo4j'
-import { toast } from "sonner"
 import { useRouter } from 'next/navigation'
-import { checkNotificationPermission, requestNotificationPermission, sendTestNotification } from '@/lib/notifications'
-import { useMedicationNotifications } from '@/hooks/use-medication-notifications'
 
 interface ElderDashboardProps {
   elderId: string
@@ -52,25 +49,7 @@ export function ElderDashboardComponent({ elderId }: ElderDashboardProps) {
   const [error, setError] = useState<string | null>(null)
   const [elderData, setElderData] = useState<ElderData | null>(null)
   const [resolvedElderId, setResolvedElderId] = useState<string | null>(null)
-  const [notificationStatus, setNotificationStatus] = useState<string>('default')
   const router = useRouter()
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setNotificationStatus(checkNotificationPermission())
-    }
-  }, [])
-
-  const handleEnableNotifications = async () => {
-    const permission = await requestNotificationPermission()
-    setNotificationStatus(permission)
-    if (permission === 'granted') {
-      toast.success('Notifications enabled successfully!')
-      sendTestNotification()
-    } else if (permission === 'denied') {
-      toast.error('Please enable notifications in your browser settings')
-    }
-  }
 
   useEffect(() => {
     const resolveId = async () => {
@@ -158,20 +137,6 @@ export function ElderDashboardComponent({ elderId }: ElderDashboardProps) {
     })
   }
 
-  // Use the notification hook
-  useMedicationNotifications(
-    medications,
-    notificationStatus === 'granted'
-  );
-
-  if (loading) {
-    return <div>Loading...</div>
-  }
-
-  if (error) {
-    return <div className="text-red-500">{error}</div>
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50">
       <motion.div 
@@ -200,114 +165,66 @@ export function ElderDashboardComponent({ elderId }: ElderDashboardProps) {
           </div>
         </div>
 
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-        >
-          <Card className="border-2 border-blue-100">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                {notificationStatus === 'granted' ? 
-                  <Bell className="h-6 w-6 text-green-500" /> : 
-                  <BellOff className="h-6 w-6 text-gray-400" />
-                }
-                Medication Reminders
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between p-2">
-                <div>
-                  {notificationStatus === 'granted' ? (
-                    <p className="text-sm text-green-600 font-medium">✓ Notifications are enabled - You&apos;ll receive reminders for your medications</p>
-                  ) : notificationStatus === 'denied' ? (
-                    <p className="text-sm text-red-600">❌ Notifications are blocked. Please enable them in your browser settings to receive medication reminders.</p>
-                  ) : (
-                    <p className="text-sm text-gray-600">Enable notifications to get timely reminders for your medications</p>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  {notificationStatus === 'granted' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => sendTestNotification()}
-                      className="border-green-200 hover:border-green-300"
-                    >
-                      <Bell className="h-4 w-4 mr-2" />
-                      Test Notification
-                    </Button>
-                  )}
-                  {notificationStatus !== 'granted' && notificationStatus !== 'denied' && (
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={handleEnableNotifications}
-                      className="bg-blue-500 hover:bg-blue-600"
-                    >
-                      <Bell className="h-4 w-4 mr-2" />
-                      Enable Notifications
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+        {loading && <div>Loading...</div>}
+        {error && <div className="text-red-500">{error}</div>}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Today&apos;s Schedule</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {getTodaysMedications().length === 0 ? (
-              <p className="text-gray-600">No medications scheduled for today.</p>
-            ) : (
-              <div className="space-y-3">
-                {getTodaysMedications().map((dose, index) => (
-                  <div key={index} className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50">
-                    <Clock className="h-4 w-4 text-blue-500" />
-                    <span className="font-medium">{formatTime(dose.time)}</span>
-                    <span className="text-gray-600">-</span>
-                    <span>{dose.medicationName}</span>
-                    <span className="text-gray-500">({dose.pillCount} pill{dose.pillCount > 1 ? 's' : ''})</span>
+        {!loading && !error && (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle>Today&apos;s Schedule</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {getTodaysMedications().length === 0 ? (
+                  <p className="text-gray-600">No medications scheduled for today.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {getTodaysMedications().map((dose, index) => (
+                      <div key={index} className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50">
+                        <Clock className="h-4 w-4 text-blue-500" />
+                        <span className="font-medium">{formatTime(dose.time)}</span>
+                        <span className="text-gray-600">-</span>
+                        <span>{dose.medicationName}</span>
+                        <span className="text-gray-500">({dose.pillCount} pill{dose.pillCount > 1 ? 's' : ''})</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                )}
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Medications</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Medication</TableHead>
-                  <TableHead>Dosage</TableHead>
-                  <TableHead>Frequency</TableHead>
-                  <TableHead>Schedule</TableHead>
-                  <TableHead>Days</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {medications.map((med, index) => (
-                  <TableRow key={med.medication.id || index}>
-                    <TableCell className="font-medium">{med.medication.name}</TableCell>
-                    <TableCell>{med.schedule.pillsPerDose[0]} pill(s)</TableCell>
-                    <TableCell>{med.schedule.frequency} time(s) daily</TableCell>
-                    <TableCell>{med.schedule.schedule.map(formatTime).join(', ')}</TableCell>
-                    <TableCell>{med.schedule.days.join(', ')}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Medications</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Medication</TableHead>
+                      <TableHead>Dosage</TableHead>
+                      <TableHead>Frequency</TableHead>
+                      <TableHead>Schedule</TableHead>
+                      <TableHead>Days</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {medications.map((med, index) => (
+                      <TableRow key={med.medication.id || index}>
+                        <TableCell className="font-medium">{med.medication.name}</TableCell>
+                        <TableCell>{med.schedule.pillsPerDose[0]} pill(s)</TableCell>
+                        <TableCell>{med.schedule.frequency} time(s) daily</TableCell>
+                        <TableCell>{med.schedule.schedule.map(formatTime).join(', ')}</TableCell>
+                        <TableCell>{med.schedule.days.join(', ')}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </motion.div>
     </div>
   )
-} 
+}

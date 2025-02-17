@@ -1,4 +1,5 @@
 export interface Medication {
+  id: string
   name: string
   brandName: string
   genericName: string
@@ -21,8 +22,8 @@ export interface FDADrugResult {
 }
 
 export interface UserProfile {
-  role: 'Elder' | 'Caretaker'
-  sex: 'Male' | 'Female' | 'Other'
+  role: string
+  sex: string
   age: number
 }
 
