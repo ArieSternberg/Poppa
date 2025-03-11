@@ -1,21 +1,44 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { ElderOnboardingComponent } from './elder-onboarding'
 import { CaretakerOnboardingComponent } from './caretaker-onboarding'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@clerk/nextjs'
 
-type Role = 'Elder' | 'Caretaker' | null
+export type Role = 'Elder' | 'Caretaker' | null
 
 export function RoleSelectionComponent() {
   const [selectedRole, setSelectedRole] = useState<Role>(null)
+  const { isSignedIn } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    // If user is already signed in, redirect to dashboard
+    if (isSignedIn) {
+      router.push('/dashboard')
+    }
+  }, [isSignedIn, router])
+
+  const handleRoleSelect = (role: Role) => {
+    setSelectedRole(role)
+    // Store role in localStorage for after sign up
+    if (role) {
+      localStorage.setItem('selectedRole', role)
+    }
+  }
+
+  const handleOnboardingComplete = () => {
+    router.push('/sign-up')
+  }
 
   if (selectedRole === 'Elder') {
-    return <ElderOnboardingComponent onBack={() => setSelectedRole(null)} />
+    return <ElderOnboardingComponent onBack={() => setSelectedRole(null)} onComplete={handleOnboardingComplete} />
   }
 
   if (selectedRole === 'Caretaker') {
-    return <CaretakerOnboardingComponent onBack={() => setSelectedRole(null)} />
+    return <CaretakerOnboardingComponent onBack={() => setSelectedRole(null)} onComplete={handleOnboardingComplete} />
   }
 
   return (
@@ -37,6 +60,7 @@ export function RoleSelectionComponent() {
         >
           Welcome to Meds Tracking
         </motion.h1>
+        
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -46,7 +70,7 @@ export function RoleSelectionComponent() {
           <motion.div
             whileHover={{ scale: 1.02 }}
             className="p-4 rounded-lg border cursor-pointer hover:bg-gray-50"
-            onClick={() => setSelectedRole('Elder')}
+            onClick={() => handleRoleSelect('Elder')}
           >
             <h3 className="text-lg font-medium">Elder</h3>
             <p className="text-gray-600">I need help managing my medications</p>
@@ -54,7 +78,7 @@ export function RoleSelectionComponent() {
           <motion.div
             whileHover={{ scale: 1.02 }}
             className="p-4 rounded-lg border cursor-pointer hover:bg-gray-50"
-            onClick={() => setSelectedRole('Caretaker')}
+            onClick={() => handleRoleSelect('Caretaker')}
           >
             <h3 className="text-lg font-medium">Caretaker</h3>
             <p className="text-gray-600">I help others manage their medications</p>

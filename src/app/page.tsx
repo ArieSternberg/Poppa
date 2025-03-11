@@ -1,7 +1,7 @@
-import GeneralLanding from '@/components/general_landing';
+import { LandingPageComponent } from '@/components/landing-page';
 
 export default function Home() {
   return (
-    <GeneralLanding />
+    <LandingPageComponent />
   )
 }

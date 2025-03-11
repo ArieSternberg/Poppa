@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useUser, useClerk } from '@clerk/nextjs'
 import { motion } from 'framer-motion'
-import { Settings, LogOut, Clock, Trash2, User } from 'lucide-react'
+import { Settings, LogOut, Clock, Trash2, User, Pencil } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation'
 import { OnboardingModal } from './onboarding-modal'
 import { ElderCard } from './elder-card'
 import { AddElderModal } from './add-elder-modal'
+import { EditMedicationModal } from './edit-medication-modal'
 
 interface Medication {
   medication: {
@@ -61,6 +62,7 @@ export function DashboardComponent() {
   const [userData, setUserData] = useState<UserData | null>(null)
   const [elders, setElders] = useState<Elder[]>([])
   const [showAddElder, setShowAddElder] = useState(false)
+  const [editingMedication, setEditingMedication] = useState<Medication | null>(null)
   const router = useRouter()
 
   const checkUserExists = useCallback(async () => {
@@ -189,6 +191,15 @@ export function DashboardComponent() {
         caretakerId={user?.id || ''}
         onElderAdded={checkUserExists}
       />
+      {editingMedication && (
+        <EditMedicationModal
+          isOpen={!!editingMedication}
+          onClose={() => setEditingMedication(null)}
+          userId={user?.id || ''}
+          medication={editingMedication}
+          onMedicationUpdated={fetchMedications}
+        />
+      )}
       <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50">
         <motion.div 
           className="bg-white/90 backdrop-blur-md p-8 rounded-lg shadow-lg w-full max-w-4xl relative z-10 space-y-6"
@@ -206,13 +217,22 @@ export function DashboardComponent() {
               Welcome, {user?.firstName || "User"}!
             </motion.h1>
             <div className="flex gap-4">
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => router.push('/profile')}
-              >
-                <User className="h-5 w-5" />
-              </Button>
+              {userData?.role === 'Elder' && (
+                <Button 
+                  onClick={() => router.push('/profile')}
+                  className="bg-[#00856A] hover:bg-[#006B55] text-white"
+                >
+                  <User className="h-5 w-5" />
+                </Button>
+              )}
+              {userData?.role === 'Caretaker' && (
+                <Button 
+                  onClick={() => router.push('/profile')}
+                  className="bg-[#00856A] hover:bg-[#006B55] text-white"
+                >
+                  <User className="h-5 w-5" />
+                </Button>
+              )}
               <Button variant="ghost" size="icon">
                 <Settings className="h-5 w-5" />
               </Button>
@@ -281,15 +301,25 @@ export function DashboardComponent() {
                             <TableCell>{med.schedule.schedule.map(formatTime).join(', ')}</TableCell>
                             <TableCell>{med.schedule.days.join(', ')}</TableCell>
                             <TableCell>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="hover:bg-red-100 hover:text-red-500 h-8 w-8"
-                                onClick={() => handleDelete(med.medication.id)}
-                                disabled={deleting === med.medication.id}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="hover:bg-blue-100 hover:text-blue-500 h-8 w-8"
+                                  onClick={() => setEditingMedication(med)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="hover:bg-red-100 hover:text-red-500 h-8 w-8"
+                                  onClick={() => handleDelete(med.medication.id)}
+                                  disabled={deleting === med.medication.id}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}

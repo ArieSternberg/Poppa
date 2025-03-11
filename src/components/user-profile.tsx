@@ -66,7 +66,6 @@ export function UserProfileComponent() {
         email: formData.email,
         phone: formData.phone,
         age: parseInt(formData.age),
-        role: formData.role,
         sex: formData.sex
       })
 
@@ -129,8 +128,11 @@ export function UserProfileComponent() {
         transition={{ duration: 0.3 }}
       >
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <CardTitle>Profile Settings</CardTitle>
+            <div className="text-sm text-gray-500">
+              Role: {formData.role}
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -179,24 +181,9 @@ export function UserProfileComponent() {
                 type="number"
                 value={formData.age}
                 onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                min={1}
+                max={120}
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Role</Label>
-              <RadioGroup
-                value={formData.role}
-                onValueChange={(value) => setFormData({ ...formData, role: value })}
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="Elder" id="elder" />
-                  <Label htmlFor="elder">Elder</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="Caretaker" id="caretaker" />
-                  <Label htmlFor="caretaker">Caretaker</Label>
-                </div>
-              </RadioGroup>
             </div>
 
             <div className="space-y-2">
@@ -242,9 +229,14 @@ export function UserProfileComponent() {
                 </AlertDialogContent>
               </AlertDialog>
 
-              <Button onClick={handleUpdate} disabled={loading}>
-                {loading ? "Saving..." : "Save Changes"}
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => router.push('/dashboard')}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUpdate} disabled={loading}>
+                  {loading ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

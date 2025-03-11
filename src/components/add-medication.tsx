@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { createMedication, linkUserToMedication } from '@/lib/neo4j'
+import { linkUserToMedication, getSession } from '@/lib/neo4j'
 import { toast } from "sonner"
 
 interface DrugResult {
@@ -79,24 +79,41 @@ export function AddMedicationComponent() {
     if (!user) return
 
     try {
-      // Create or find medication node
-      const [medicationRecord] = await createMedication({ name: currentMedication.name })
-      const medicationId = medicationRecord.get('m').properties.id
+      // Create or find medication node and get its elementId
+      const session = await getSession()
+      const result = await session.run(`
+        MERGE (m:Medication {name: $name})
+        ON CREATE SET m.id = randomUUID()
+        RETURN elementId(m) as id, m
+      `, { name: currentMedication.name })
+
+      if (!result.records || result.records.length === 0) {
+        throw new Error('Failed to create medication')
+      }
+
+      const medicationId = result.records[0].get('id').toString()
 
       // Create relationship with schedule details
       const schedule = {
         schedule: currentMedication.schedule,
         pillsPerDose: currentMedication.pillsPerDose,
         days: currentMedication.days,
-        frequency: currentMedication.frequency
+        frequency: currentMedication.frequency,
+        dosage: `${currentMedication.dosage}mg`
       }
 
-      await linkUserToMedication(user.id, medicationId, schedule)
+      console.log('Linking medication with:', { medicationId, schedule })
+      const linkResult = await linkUserToMedication(user.id, medicationId, schedule)
+      
+      if (!linkResult) {
+        throw new Error('Failed to link medication')
+      }
+
       toast.success("Medication added successfully!")
       router.push('/dashboard')
     } catch (error) {
       console.error('Error saving medication:', error)
-      toast.error("Failed to add medication")
+      toast.error(error instanceof Error ? error.message : "Failed to add medication")
     }
   }
 
@@ -172,19 +189,18 @@ export function AddMedicationComponent() {
       <h2 className="text-2xl font-bold">{currentMedication.brandName || currentMedication.genericName}</h2>
       <div className="space-y-2">
         <Label htmlFor="dosage">Dosage (mg)</Label>
-        <Select
-          value={currentMedication.dosage.toString()}
-          onValueChange={(value) => setCurrentMedication({ ...currentMedication, dosage: parseFloat(value) })}
-        >
-          <SelectTrigger id="dosage">
-            <SelectValue placeholder="Select dosage" />
-          </SelectTrigger>
-          <SelectContent>
-            {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((dose) => (
-              <SelectItem key={dose} value={dose.toString()}>{dose} mg</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Input
+            type="number"
+            id="dosage"
+            value={currentMedication.dosage || ''}
+            onChange={(e) => setCurrentMedication({ ...currentMedication, dosage: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
+            min={0}
+            step="0.25"
+            className="w-32"
+          />
+          <span className="text-sm">mg</span>
+        </div>
       </div>
       <div className="space-y-2">
         <Label htmlFor="frequency">Daily Frequency</Label>

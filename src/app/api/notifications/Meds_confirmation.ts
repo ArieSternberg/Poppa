@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getMedicationsDue, initNeo4j } from "@/lib/neo4j";
+import { NotificationType, notificationTemplates } from '@/config/notificationTemplates';
 
 // Initialize Neo4j
 initNeo4j();
@@ -15,7 +16,7 @@ console.log('Debug - Environment Variables:', {
 // Twilio setup
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
-const contentSid = process.env.TWILIO_CONTENT_SID;
+const contentSid = notificationTemplates[NotificationType.MEDICATION_REMINDER].contentSid;
 const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
 const fromNumber = "+13057605575";
 
@@ -30,10 +31,11 @@ async function sendWhatsAppNotification(phoneNumber: string, medications: string
     fromNumber
   });
 
+  // Format medications with numbers (1., 2., etc.)
+  const formattedMedications = medications.map((med, index) => `${index + 1}. ${med}`).join('\n');
+
   const contentVariables = {
-    "1": medications[0] || "",
-    "2": medications[1] || "",
-    "3": medications[2] || ""
+    "1": formattedMedications
   };
 
   const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;

@@ -1,13 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronRight, ChevronLeft, User, Phone, Mail } from 'lucide-react'
+import { ChevronRight, ChevronLeft, User, Phone } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Separator } from "@/components/ui/separator"
 import { createUser, findUserByPhone, createCaretakerRelationship } from '@/lib/neo4j'
 import { useUser } from '@clerk/nextjs'
 import { toast } from "sonner"
@@ -16,15 +15,13 @@ import { UserProfile, ElderConnection } from './types'
 
 interface CaretakerOnboardingProps {
   onBack: () => void;
+  onComplete: () => void;
 }
 
-export function CaretakerOnboardingComponent({ onBack }: CaretakerOnboardingProps) {
+export function CaretakerOnboardingComponent({ onBack, onComplete }: CaretakerOnboardingProps) {
   const { user } = useUser()
   const [step, setStep] = useState(1)
   const [error, setError] = useState<string | null>(null)
-  const [inviteEmail, setInviteEmail] = useState('')
-  const [isInviting, setIsInviting] = useState(false)
-  const [showInvite, setShowInvite] = useState(false)
   const [userProfile, setUserProfile] = useState<UserProfile>({
     role: 'Caretaker',
     sex: 'Male',
@@ -36,26 +33,14 @@ export function CaretakerOnboardingComponent({ onBack }: CaretakerOnboardingProp
   })
   const router = useRouter()
 
-  const handleInviteElder = async () => {
-    if (!inviteEmail) return
-    
-    setIsInviting(true)
-    try {
-      // TODO: Implement actual email invitation logic here
-      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulating API call
-      toast.success("Invitation sent successfully!")
-      setInviteEmail('')
-      setShowInvite(false)
-    } catch (err) {
-      console.error('Error sending invitation:', err)
-      toast.error("Failed to send invitation")
-    } finally {
-      setIsInviting(false)
-    }
-  }
-
   const handleFinish = async () => {
-    if (!user) return
+    if (!user) {
+      // Store profile data in localStorage
+      localStorage.setItem('caretakerProfile', JSON.stringify(userProfile))
+      localStorage.setItem('elderConnection', JSON.stringify(elderConnection))
+      onComplete()
+      return
+    }
 
     try {
       // Create user profile
@@ -147,7 +132,7 @@ export function CaretakerOnboardingComponent({ onBack }: CaretakerOnboardingProp
     >
       <h2 className="text-2xl font-bold">Connect with Your Elder</h2>
       <p className="text-gray-600">
-        Enter your elder&apos;s phone number to connect with them. They must be registered as an Elder in the system.
+        Search for your elder if they already have an account.
       </p>
       
       <div className="space-y-4">
@@ -157,65 +142,71 @@ export function CaretakerOnboardingComponent({ onBack }: CaretakerOnboardingProp
             placeholder="Enter phone number"
             value={elderConnection.phoneNumber}
             onChange={(e) => {
-              setElderConnection({
+              setElderConnection(prev => ({
+                ...prev,
                 phoneNumber: e.target.value,
                 elderUser: null
-              })
+              }))
               setError(null)
-              setShowInvite(false)
             }}
             className="pl-10"
           />
           <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
         </div>
 
-        <Button 
-          onClick={async () => {
-            if (elderConnection.phoneNumber.length < 10) {
-              setError('Please enter a valid phone number')
-              setShowInvite(false)
-              return
-            }
-
-            try {
-              const elder = await findUserByPhone(elderConnection.phoneNumber)
-              if (elder && elder.role === 'Elder') {
-                setElderConnection(prev => ({
-                  ...prev,
-                  elderUser: elder
-                }))
-                setError(null)
-                setShowInvite(false)
-              } else if (elder) {
-                setError('This user is not registered as an elder')
-                setElderConnection(prev => ({
-                  ...prev,
-                  elderUser: null
-                }))
-                setShowInvite(false)
-              } else {
-                setError('No user found with this phone number')
-                setElderConnection(prev => ({
-                  ...prev,
-                  elderUser: null
-                }))
-                setShowInvite(true)
+        <div className="flex gap-2">
+          <Button 
+            onClick={async () => {
+              // Remove formatting and add +1
+              const cleanedNumber = '+1' + elderConnection.phoneNumber.replace(/\D/g, '')
+              if (cleanedNumber.length < 12) { // +1 plus 10 digits
+                setError('Please enter a valid phone number')
+                return
               }
-            } catch (error) {
-              console.error('Error searching for elder:', error)
-              setError('Error searching for elder')
-              setElderConnection(prev => ({
-                ...prev,
-                elderUser: null
-              }))
-              setShowInvite(false)
-            }
-          }}
-          className="w-full"
-          disabled={elderConnection.phoneNumber.length < 10}
-        >
-          Search
-        </Button>
+
+              try {
+                const elder = await findUserByPhone(cleanedNumber)
+                if (elder && elder.role === 'Elder') {
+                  setElderConnection(prev => ({
+                    ...prev,
+                    elderUser: elder
+                  }))
+                  setError(null)
+                  // Store data
+                  localStorage.setItem('caretakerProfile', JSON.stringify(userProfile))
+                  localStorage.setItem('elderConnection', JSON.stringify({ 
+                    ...elderConnection, 
+                    elderUser: elder,
+                    phoneNumber: cleanedNumber // Store the full number with +1
+                  }))
+                } else if (elder) {
+                  setError('This user is not registered as an elder')
+                  setElderConnection(prev => ({
+                    ...prev,
+                    elderUser: null
+                  }))
+                } else {
+                  setError('No user found with this phone number')
+                  setElderConnection(prev => ({
+                    ...prev,
+                    elderUser: null
+                  }))
+                }
+              } catch (error) {
+                console.error('Error searching for elder:', error)
+                setError('Error searching for elder')
+                setElderConnection(prev => ({
+                  ...prev,
+                  elderUser: null
+                }))
+              }
+            }}
+            className="flex-1"
+            disabled={elderConnection.phoneNumber.replace(/\D/g, '').length < 10}
+          >
+            Search for Elder
+          </Button>
+        </div>
 
         {error && (
           <p className="text-red-500 text-sm text-center">{error}</p>
@@ -232,39 +223,6 @@ export function CaretakerOnboardingComponent({ onBack }: CaretakerOnboardingProp
             <p className="text-sm text-green-600">Age: {elderConnection.elderUser.age}</p>
           </motion.div>
         )}
-
-        {showInvite && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-4"
-          >
-            <Separator className="my-4" />
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold">Invite Your Elder</h3>
-              <p className="text-sm text-gray-600">
-                Your elder hasn&apos;t registered yet? Send them an invitation to join Poppa.AI Med Tracking.
-              </p>
-              <div className="relative">
-                <Input
-                  type="email"
-                  placeholder="Enter their email address"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  className="pl-10"
-                />
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              </div>
-              <Button 
-                onClick={handleInviteElder}
-                className="w-full"
-                disabled={!inviteEmail || isInviting}
-              >
-                {isInviting ? 'Sending Invitation...' : 'Send Invitation'}
-              </Button>
-            </div>
-          </motion.div>
-        )}
       </div>
 
       <div className="flex justify-between pt-4">
@@ -272,8 +230,8 @@ export function CaretakerOnboardingComponent({ onBack }: CaretakerOnboardingProp
           <ChevronLeft className="mr-2 h-4 w-4" /> Back
         </Button>
         <Button 
-          onClick={() => setStep(3)}
-          disabled={!elderConnection.elderUser}
+          onClick={onComplete}
+          disabled={!elderConnection.elderUser && !localStorage.getItem('elderConnection')}
         >
           Next <ChevronRight className="ml-2 h-4 w-4" />
         </Button>

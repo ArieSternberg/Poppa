@@ -1,3 +1,5 @@
+'use client'
+
 import { motion } from 'framer-motion'
 import { Button } from "@/components/ui/button"
 import { useRouter } from 'next/navigation'
@@ -10,6 +12,17 @@ export function OnboardingModal({ isOpen }: OnboardingModalProps) {
   const router = useRouter()
 
   if (!isOpen) return null
+
+  const handleStartOnboarding = () => {
+    // Clear any existing onboarding data
+    localStorage.removeItem('selectedRole')
+    localStorage.removeItem('elderProfile')
+    localStorage.removeItem('elderMedications')
+    localStorage.removeItem('caretakerProfile')
+    localStorage.removeItem('elderConnection')
+    
+    router.push('/onboarding')
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -25,7 +38,7 @@ export function OnboardingModal({ isOpen }: OnboardingModalProps) {
         </p>
         <div className="flex justify-center">
           <Button 
-            onClick={() => router.push('/onboarding')}
+            onClick={handleStartOnboarding}
             className="bg-[#00856A] hover:bg-[#006B55] text-white"
           >
             Start Onboarding

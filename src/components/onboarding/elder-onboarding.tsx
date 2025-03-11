@@ -18,9 +18,10 @@ import { Medication, UserProfile } from './types'
 
 interface ElderOnboardingProps {
   onBack: () => void;
+  onComplete: () => void;
 }
 
-export function ElderOnboardingComponent({ onBack }: ElderOnboardingProps) {
+export function ElderOnboardingComponent({ onBack, onComplete }: ElderOnboardingProps) {
   const { user } = useUser()
   const [step, setStep] = useState(1)
   const [medications, setMedications] = useState<Medication[]>([])
@@ -50,7 +51,7 @@ export function ElderOnboardingComponent({ onBack }: ElderOnboardingProps) {
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query)
-    if (query.length < 2) {
+    if (query.length < 3) {
       setSearchResults([])
       setError(null)
       return
@@ -61,6 +62,7 @@ export function ElderOnboardingComponent({ onBack }: ElderOnboardingProps) {
 
     try {
       const results = await searchMedications(query)
+      console.log('Search results with IDs:', results)
       setSearchResults(results)
       if (results.length === 0) {
         setError("Can't find that medication, sorry")
@@ -74,8 +76,10 @@ export function ElderOnboardingComponent({ onBack }: ElderOnboardingProps) {
   }
 
   const handleAddMedication = () => {
+    console.log('Adding medication with data:', currentMedication)
     if (currentMedication.name) {
       setMedications([...medications, currentMedication])
+      console.log('Updated medications list:', [...medications, currentMedication])
       setCurrentMedication({
         id: '',
         name: '',
@@ -95,6 +99,7 @@ export function ElderOnboardingComponent({ onBack }: ElderOnboardingProps) {
   }
 
   const handleEditMedication = (index: number) => {
+    console.log('Editing medication:', medications[index])
     setCurrentMedication(medications[index])
     setMedications(medications.filter((_, i) => i !== index))
     setStep(3) // Go to medication details
@@ -104,7 +109,13 @@ export function ElderOnboardingComponent({ onBack }: ElderOnboardingProps) {
   }
 
   const handleFinish = async () => {
-    if (!user) return
+    if (!user) {
+      // Store profile data in localStorage
+      localStorage.setItem('elderProfile', JSON.stringify(userProfile))
+      localStorage.setItem('elderMedications', JSON.stringify(medications))
+      onComplete()
+      return
+    }
 
     try {
       // Create user profile
@@ -121,7 +132,8 @@ export function ElderOnboardingComponent({ onBack }: ElderOnboardingProps) {
           schedule: med.schedule,
           pillsPerDose: med.pillsPerDose,
           days: med.days,
-          frequency: med.frequency
+          frequency: med.frequency,
+          dosage: `${med.dosage}mg`
         }
 
         await linkUserToMedication(user.id, med.id, schedule)
@@ -213,7 +225,7 @@ export function ElderOnboardingComponent({ onBack }: ElderOnboardingProps) {
         <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
       </div>
       {isLoading && <p>Loading...</p>}
-      {error && searchQuery.length >= 2 && <p className="text-red-500">{error}</p>}
+      {error && searchQuery.length >= 3 && <p className="text-red-500">{error}</p>}
       <ul className="mt-2 space-y-2 max-h-60 overflow-y-auto">
         <AnimatePresence>
           {searchResults.map((drug, index) => (
@@ -227,7 +239,15 @@ export function ElderOnboardingComponent({ onBack }: ElderOnboardingProps) {
                 selectedDrug === drug.name ? 'bg-blue-100' : ''
               }`}
               onClick={() => {
+                console.log('Selected drug with ID:', drug.id)
                 setCurrentMedication({
+                  ...currentMedication,
+                  id: drug.id,
+                  name: drug.name,
+                  brandName: drug.brandName,
+                  genericName: drug.genericName
+                })
+                console.log('Updated currentMedication:', {
                   ...currentMedication,
                   id: drug.id,
                   name: drug.name,
@@ -320,19 +340,18 @@ export function ElderOnboardingComponent({ onBack }: ElderOnboardingProps) {
       <h2 className="text-2xl font-bold">Medication Details: {currentMedication.name}</h2>
       <div className="space-y-2">
         <Label htmlFor="dosage">Dosage (mg)</Label>
-        <Select
-          value={currentMedication.dosage.toString()}
-          onValueChange={(value) => setCurrentMedication({ ...currentMedication, dosage: parseFloat(value) })}
-        >
-          <SelectTrigger id="dosage">
-            <SelectValue placeholder="Select dosage" />
-          </SelectTrigger>
-          <SelectContent>
-            {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((dose) => (
-              <SelectItem key={dose} value={dose.toString()}>{dose} mg</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Input
+            type="number"
+            id="dosage"
+            value={currentMedication.dosage || ''}
+            onChange={(e) => setCurrentMedication({ ...currentMedication, dosage: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
+            min={0}
+            step="0.25"
+            className="w-32"
+          />
+          <span className="text-sm">mg</span>
+        </div>
       </div>
       <div className="space-y-2">
         <Label htmlFor="frequency">Daily Frequency</Label>

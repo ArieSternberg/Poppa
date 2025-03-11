@@ -12,6 +12,7 @@ interface MedicationSchedule {
   pillsPerDose: number[]
   days: string[]
   frequency: number
+  dosage: string  // Changed from number to string to include unit
 }
 
 export interface DrugResult {
@@ -33,6 +34,7 @@ export function initNeo4j() {
     const username = process.env.NEO4J_USERNAME
     const password = process.env.NEO4J_PASSWORD
 
+    console.log('Initializing Neo4j connection...')
     console.log('Neo4j Config:', {
         uri: process.env.NEO4J_URI,
         username: process.env.NEO4J_USERNAME,
@@ -40,17 +42,41 @@ export function initNeo4j() {
     })
 
     if (!uri || !username || !password) {
-        throw new Error('Neo4j credentials not found in environment variables')
+        const error = new Error('Neo4j credentials not found in environment variables')
+        console.error('Neo4j initialization failed:', error)
+        throw error
     }
 
-    if (!driver) {
-        driver = neo4j.driver(uri, neo4j.auth.basic(username, password))
+    try {
+        if (!driver) {
+            // For development, use basic config without encryption
+            const config = process.env.NODE_ENV === 'development' ? {
+                maxConnectionPoolSize: 50,
+                connectionTimeout: 30000, // 30 seconds
+            } : {
+                // For production, use encryption
+                encrypted: true,
+                trust: 'TRUST_SYSTEM_CA_SIGNED_CERTIFICATES' as const,
+                maxConnectionPoolSize: 50,
+                connectionTimeout: 30000, // 30 seconds
+            }
+            
+            driver = neo4j.driver(
+                uri,
+                neo4j.auth.basic(username, password),
+                config
+            )
+            console.log('Neo4j driver created successfully with config:', config)
+        }
+        return driver
+    } catch (error) {
+        console.error('Failed to create Neo4j driver:', error)
+        throw error
     }
-
-    return driver
 }
 
 export async function testConnection() {
+    console.log('Testing Neo4j connection...')
     const session = await getSession()
     try {
         const result = await session.run('RETURN 1 as test')
@@ -66,9 +92,17 @@ export async function testConnection() {
 
 export async function getSession() {
     if (!driver) {
+        console.log('No existing driver, initializing Neo4j...')
         driver = initNeo4j()
     }
-    return driver.session()
+    try {
+        const session = driver.session()
+        console.log('Neo4j session created successfully')
+        return session
+    } catch (error) {
+        console.error('Failed to create Neo4j session:', error)
+        throw error
+    }
 }
 
 export async function closeDriver() {
@@ -186,19 +220,71 @@ export async function createMedication(medicationData: MedicationData) {
 }
 
 export async function linkUserToMedication(userId: string, medicationId: string, schedule: MedicationSchedule) {
-    const cypher = `
+    console.log('Linking medication to user:', { userId, medicationId, schedule })
+    
+    if (!userId || !medicationId) {
+        console.error('Missing required parameters:', { userId, medicationId })
+        return null
+    }
+
+    // First verify the user and medication exist
+    const verifyQuery = `
         MATCH (u:User {id: $userId})
-        MATCH (m:Medication {id: $medicationId})
-        MERGE (u)-[r:TAKES]->(m)
-        SET r.schedule = $schedule.schedule,
-            r.pillsPerDose = $schedule.pillsPerDose,
-            r.days = $schedule.days,
-            r.frequency = $schedule.frequency,
-            r.updatedAt = datetime()
-        RETURN r
+        MATCH (m:Medication)
+        WHERE elementId(m) = $medicationId
+        RETURN u, m
     `
+    
     const session = await getSession()
     try {
+        // Verify user and medication exist
+        console.log('Verifying user and medication exist:', { userId, medicationId })
+        const verifyResult = await session.run(verifyQuery, { userId, medicationId })
+        
+        if (!verifyResult.records || verifyResult.records.length === 0) {
+            console.error('User or medication not found:', { userId, medicationId })
+            return null
+        }
+        
+        const user = verifyResult.records[0].get('u')
+        const medication = verifyResult.records[0].get('m')
+        console.log('Found user and medication:', {
+            user: user.properties,
+            medication: medication.properties
+        })
+        
+        // Validate schedule data
+        if (!Array.isArray(schedule.schedule) || !Array.isArray(schedule.pillsPerDose) || !Array.isArray(schedule.days)) {
+            console.error('Invalid schedule format:', schedule)
+            return null
+        }
+
+        if (schedule.schedule.length !== schedule.pillsPerDose.length) {
+            console.error('Schedule and pillsPerDose arrays must have the same length:', {
+                scheduleLength: schedule.schedule.length,
+                pillsPerDoseLength: schedule.pillsPerDose.length
+            })
+            return null
+        }
+        
+        // Create or update the TAKES relationship
+        const cypher = `
+            MATCH (u:User {id: $userId})
+            MATCH (m:Medication)
+            WHERE elementId(m) = $medicationId
+            MERGE (u)-[r:TAKES]->(m)
+            SET r.schedule = $schedule.schedule,
+                r.pillsPerDose = $schedule.pillsPerDose,
+                r.days = $schedule.days,
+                r.frequency = $schedule.frequency,
+                r.dosage = $schedule.dosage,
+                r.updatedAt = datetime()
+            RETURN r, m
+        `
+        
+        console.log('Executing Cypher query:', cypher)
+        console.log('With parameters:', { userId, medicationId, schedule })
+        
         const result = await session.run(cypher, { 
             userId, 
             medicationId,
@@ -206,10 +292,27 @@ export async function linkUserToMedication(userId: string, medicationId: string,
                 schedule: schedule.schedule,
                 pillsPerDose: schedule.pillsPerDose,
                 days: schedule.days,
-                frequency: schedule.frequency
+                frequency: schedule.frequency,
+                dosage: schedule.dosage
             }
         })
+        
+        if (!result.records || result.records.length === 0) {
+            console.error('No records returned from linkUserToMedication')
+            return null
+        }
+        
+        const relationship = result.records[0].get('r')
+        const linkedMedication = result.records[0].get('m')
+        console.log('Medication linked successfully:', {
+            relationship: relationship.properties,
+            medication: linkedMedication.properties
+        })
+        
         return result.records
+    } catch (error) {
+        console.error('Error linking medication:', error)
+        throw error
     } finally {
         await session.close()
     }
@@ -402,7 +505,7 @@ export const recordMedicationStatus = async (
   date: string,
   scheduledTime: string,
   actualTime: string | null,
-  status: 'taken' | 'missed'
+  status: 'taken' | 'missed' | 'pending'
 ) => {
   const session = await getSession();
   try {
@@ -432,21 +535,48 @@ export const recordMedicationStatus = async (
 };
 
 export async function searchMedications(query: string): Promise<DrugResult[]> {
+  console.log('Searching medications with query:', query)
   const cypher = `
     MATCH (m:Medication)
     WHERE toLower(m.name) CONTAINS toLower($query)
-    RETURN m.id as id, m.name as name, m.brandName as brandName, m.genericName as genericName
-    LIMIT 5
+       OR toLower(m.brandName) CONTAINS toLower($query)
+       OR toLower(m.genericName) CONTAINS toLower($query)
+    WITH m,
+      CASE 
+        WHEN toLower(m.name) = toLower($query) THEN 4
+        WHEN toLower(m.name) STARTS WITH toLower($query) THEN 3
+        WHEN toLower(m.brandName) STARTS WITH toLower($query) THEN 2
+        WHEN toLower(m.genericName) STARTS WITH toLower($query) THEN 1
+        ELSE 0
+      END as priority
+    // Use the elementId() function to get Neo4j's internal ID
+    RETURN elementId(m) as id, m.name as name, m.brandName as brandName, m.genericName as genericName
+    ORDER BY priority DESC, m.name
+    LIMIT 10
   `
   const session = await getSession()
   try {
+    console.log('Executing medication search query:', cypher)
     const result = await session.run(cypher, { query })
-    return result.records.map(record => ({
+    console.log('Raw search results:', result.records.map(record => ({
       id: record.get('id'),
       name: record.get('name'),
       brandName: record.get('brandName'),
       genericName: record.get('genericName')
+    })))
+    
+    const medications = result.records.map(record => ({
+      id: record.get('id'),
+      name: record.get('name'),
+      brandName: record.get('brandName') || '',
+      genericName: record.get('genericName') || ''
     }))
+    
+    console.log('Processed search results:', medications)
+    return medications
+  } catch (error) {
+    console.error('Error searching medications:', error)
+    throw error
   } finally {
     await session.close()
   }
@@ -542,4 +672,34 @@ export async function getMedicationsDue(minutesAhead: number): Promise<Medicatio
   } finally {
     await session.close();
   }
+}
+
+export async function updateMedicationSchedule(userId: string, medicationId: string, schedule: MedicationSchedule) {
+    const cypher = `
+        MATCH (u:User {id: $userId})-[r:TAKES]->(m:Medication {id: $medicationId})
+        SET r.schedule = $schedule.schedule,
+            r.pillsPerDose = $schedule.pillsPerDose,
+            r.days = $schedule.days,
+            r.frequency = $schedule.frequency,
+            r.dosage = $schedule.dosage,
+            r.updatedAt = datetime()
+        RETURN r
+    `
+    const session = await getSession()
+    try {
+        const result = await session.run(cypher, { 
+            userId, 
+            medicationId,
+            schedule: {
+                schedule: schedule.schedule,
+                pillsPerDose: schedule.pillsPerDose,
+                days: schedule.days,
+                frequency: schedule.frequency,
+                dosage: schedule.dosage
+            }
+        })
+        return result.records[0]
+    } finally {
+        await session.close()
+    }
 } 

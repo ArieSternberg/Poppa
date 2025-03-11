@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image' 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { SignInButton, SignUpButton, useAuth, useClerk } from "@clerk/nextjs"
+import { SignInButton, useAuth, useClerk } from "@clerk/nextjs"
 import { toast } from "sonner"
 
 export function LandingPageComponent() {
@@ -78,24 +78,19 @@ export function LandingPageComponent() {
                     className="text-[#00856A] hover:text-[#006B55] font-bold py-2 px-4 rounded-full transition duration-300">
                     Dashboard
                   </button>
+                </>
+              ) : (
+                <>
                   <button 
                     onClick={handleTryItNow}
                     className="bg-[#00856A] hover:bg-[#006B55] text-white font-bold py-2 px-4 rounded-full transition duration-300 ease-in-out transform hover:scale-105">
                     Try it now!
                   </button>
-                </>
-              ) : (
-                <>
                   <SignInButton mode="modal">
                     <button className="text-[#00856A] hover:text-[#006B55] font-bold py-2 px-4 rounded-full transition duration-300">
                       Sign In
                     </button>
                   </SignInButton>
-                  <SignUpButton mode="modal">
-                    <button className="bg-[#00856A] hover:bg-[#006B55] text-white font-bold py-2 px-4 rounded-full transition duration-300 ease-in-out transform hover:scale-105">
-                      Sign Up
-                    </button>
-                  </SignUpButton>
                 </>
               )}
             </div>
@@ -169,7 +164,7 @@ export function LandingPageComponent() {
             <p className="mt-2 text-3xl font-extrabold text-gray-900 sm:text-4xl">
             Revolutionizing Health Management            </p>
             <p className="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
-            Take control of your loved one&apos;s health with Poppa.AI Med Tracking—an AI-driven solution designed to make medical tracking stress-free and efficient.
+            Take control of your loved one&apos;s health with Poppa&apos;s AI driven solution designed to make daily routines stress-free and efficient.
             </p>
           </div>
 
@@ -182,15 +177,15 @@ export function LandingPageComponent() {
                 },
                 {
                   title: 'Seamless Medication Management',
-                  description: 'Never miss a dose again. Poppa.AI Med Tracking\'s advanced medication reminders help your loved ones maintain their health regimen while keeping you informed. Receive timely notifications for every dose, making health management simple and effective.'
+                  description: 'Never miss a dose again. Poppa.AI Med Tracking\'s uses reminders help your loved ones maintain their health regimen while keeping you informed. Receive daily notifications for every dose, making health management simple and effective.'
                 },
                 {
                   title: 'Instant Health Alerts',
-                  description: 'Stay prepared for any situation. Get immediate alerts whenever important medication schedules are missed. Our system ensures you\'re aware and can take action promptly.'
+                  description: 'Stay prepared for any situation.  Get immediate alerts whenever a sudden routine stops or changes. Our system ensures you\'re aware of potential critical events and can take action promptly.'
                 },
                 {
                   title: 'Caring & Coordination Made Easy',
-                  description: 'Bring the family together in caregiving. Poppa.AI Med Tracking simplifies communication between family members and/or caregivers, so everyone is on the same page. Assign tasks, track progress, and manage updates seamlessly from the app.'
+                  description: 'Bring the family together in caregiving. Poppa.AI simplifies communication between family members and/or caregivers, so everyone is on the same page. Assign tasks, track progress, and manage updates seamlessly from the app or just chat with Poppa.AI.'
                 }
               ].map((feature) => (
                 <div key={feature.title} className="relative">
@@ -228,16 +223,16 @@ export function LandingPageComponent() {
 
             <div className="mt-20">
               <div className="flex flex-col md:flex-row justify-center items-center space-y-10 md:space-y-0 md:space-x-10">
-                {['Select Your Meds', 'Set Up Profile', 'Sign Up', 'Set Alerts & Notifications'].map((step, index) => (
+                {['Select Your Meds', 'Set Up Profile', 'Sign Up', 'Set Notifications'].map((step, index) => (
                   <div key={step} className="flex flex-col items-center">
                     <div className="flex items-center justify-center h-16 w-16 rounded-full bg-[#00856A] text-white text-2xl font-bold">
                       {index + 1}
                     </div>
                     <h3 className="mt-6 text-xl font-medium text-gray-900">{step}</h3>
                     <p className="mt-2 text-base text-gray-500 text-center max-w-xs">
-                      {index === 0 && "Quickly search from the FDA meds list and select the right medications, dosage, and schedule for your loved one."}
-                      {index === 1 && "With simple elements, let us know about your loved one's inner circle and basic health information. This helps personalize the experience."}
-                      {index === 2 && "With just a few clicks and some basic info, you can get onboard and start using Poppa.AI Med Tracking to simplify health management."}
+                      {index === 0 && "Quickly search from the FDA medication list and select the dosage, and schedule for your loved one."}
+                      {index === 1 && "With simple elements, let us know about your loved one's inner circle and basic information. This helps personalize the experience."}
+                      {index === 2 && "With just a few clicks and some basic info, you can get onboard and start using Poppa.AI Med Tracking to simplify your day to day duties."}
                       {index === 3 && "Receive real-time updates and alerts to stay informed of your loved one's health status at all times."}
                     </p>
                   </div>
@@ -260,10 +255,10 @@ export function LandingPageComponent() {
             </h2>
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
               {[
-                { name: "Sarah L.", quote: "Poppa.AI Med Tracking has given me peace of mind knowing that I can monitor my mother's health from afar. It truly makes a difference." },
-                { name: "Michael R.", quote: "The medication reminders have been a game-changer for my father's health management. I no longer worry about missed doses." },
+                { name: "Sarah L.", quote: "Poppa.AI has given me peace of mind knowing that I can monitor my mother's health from afar. It truly makes a difference to have Poppa.AI support." },
+                { name: "Michael R.", quote: "The reminders have been a game changer for my father's medication intake. I no longer worry about missed doses." },
                 { name: "Emily T.", quote: "The caregiver coordination feature has made it so much easier to communicate with my siblings about our parents' care. We're all more involved now." },
-                { name: "Alex P.", quote: "Having an updated list of my father's meds saved us during an ER visit. The doctors avoided a dangerous interaction thanks to Poppa.AI Med Tracking." }
+                { name: "Alex P.", quote: "Having an updated list of my father's meds saved us during an ER visit. The doctors avoided a dangerous interaction thanks to Poppa.AI." }
               ].map((testimonial, index) => (
                 <div key={index} className="bg-white shadow-lg rounded-lg p-8">
                   <div className="flex items-center mb-4">
@@ -300,10 +295,10 @@ export function LandingPageComponent() {
             </h2>
             <div className="space-y-8">
               {[
-                { q: "How does Poppa.AI Med Tracking work?", a: "Poppa.AI Med Tracking leverages wearable devices, a smartphone app, and our AI-driven platform to monitor health metrics. It provides real-time updates, medication reminders, and health alerts, ensuring you have everything you need to manage your loved one's care effectively." },
+                { q: "How does Poppa.AI Med Tracking work?", a: "Poppa.AI will soon leverage wearable devices. Poppa AI-driven platform to monitor daily health and cognitive metrics. It provides real-time updates, meds reminders, and daily essential alerts, ensuring you have everything you need to manage your loved one's care effectively." },
                 { q: "Is my health data secure?", a: "Yes, we prioritize data security. All health information is encrypted and stored securely in compliance with HIPAA regulations. Your data is never shared without your explicit consent." },
                 { q: "Can multiple family members access the same account?", a: "Absolutely. Our caregiver coordination feature allows multiple family members to participate in your loved one's care. You can assign different permission levels, ensuring that everyone stays informed while maintaining control over privacy." },
-                { q: "What types of health metrics does Poppa.AI Med Tracking monitor?", a: "Our platform tracks a wide range of metrics, including activity levels, sleep patterns, and medication adherence. Metrics are customizable to suit your loved one's specific health needs." }
+                { q: "What types of health metrics does Poppa.AI Med Tracking monitor?", a: "Poppa is just starting out, but we plan to monitor a wide range of metrics, including activity levels, sleep patterns, and medication adherence. Metrics are customizable to suit your loved one's specific health needs." }
               ].map((faq, index) => (
                 <div key={index} className="bg-white shadow overflow-hidden sm:rounded-lg">
                   <div className="px-4 py-5 sm:px-6">
@@ -328,7 +323,7 @@ export function LandingPageComponent() {
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl font-extrabold mb-4">Ready to get started?</h2>
-            <p className="text-xl mb-8">Join thousands of families providing better care to their loved ones with Poppa.AI Med Tracking. Take the first step towards stress-free health management today.!</p>
+            <p className="text-xl mb-8">Join thousands of families providing better care to their loved ones with Poppa. Take the first step towards stress-free health management today.!</p>
             <button className="bg-white text-[#00856A] font-bold py-3 px-8 rounded-full text-lg transition duration-300 ease-in-out transform hover:scale-105 hover:bg-gray-100">
               Sign Up Now
             </button>
