@@ -50,13 +50,7 @@ export function initNeo4j() {
     try {
         if (!driver) {
             // For development, use basic config without encryption
-            const config = process.env.NODE_ENV === 'development' ? {
-                maxConnectionPoolSize: 50,
-                connectionTimeout: 30000, // 30 seconds
-            } : {
-                // For production, use encryption
-                encrypted: true,
-                trust: 'TRUST_SYSTEM_CA_SIGNED_CERTIFICATES' as const,
+            const config = {
                 maxConnectionPoolSize: 50,
                 connectionTimeout: 30000, // 30 seconds
             }

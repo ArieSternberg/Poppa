@@ -56,6 +56,30 @@ async function sendInviteFamilyMessages(to: string) {
 
 export async function POST(request: Request) {
   try {
+    // Validate Twilio request signature in production
+    if (process.env.NODE_ENV === 'production') {
+      const url = 'https://poppa-sigma.vercel.app/api/webhook/twilio'
+      const twilioSignature = request.headers.get('x-twilio-signature')
+      const params = Object.fromEntries(await request.formData())
+      
+      if (!twilioSignature || !authToken) {
+        console.error('Missing Twilio signature or auth token')
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+
+      const isValidRequest = twilio.validateRequest(
+        authToken,
+        twilioSignature,
+        url,
+        params
+      )
+
+      if (!isValidRequest) {
+        console.error('Invalid Twilio signature')
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+    }
+
     const formData = await request.formData()
     const from = formData.get('From') as string
     const body = formData.get('Body') as string
@@ -72,7 +96,7 @@ export async function POST(request: Request) {
     }
 
     // Handle "Yes!" response for invite flow
-    if (body.toLowerCase().includes('yes')) {
+    if (body?.toLowerCase().includes('yes')) {
       await sendInviteFamilyMessages(phoneNumber)
       return NextResponse.json({ success: true })
     }
