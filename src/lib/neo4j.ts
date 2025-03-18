@@ -586,6 +586,13 @@ export async function getMedicationsDue(minutesAhead: number): Promise<Medicatio
     const end = new Date(now.getTime() + minutesAhead * 60000);
     const currentDay = now.toLocaleDateString('en-US', { weekday: 'short' });
     
+    console.log('Debug - Time window calculation:', {
+      currentTime: now.toISOString(),
+      endTime: end.toISOString(),
+      currentDay,
+      minutesAhead
+    });
+    
     // First, let's see what medications exist at all
     console.log('Debug - Checking all medications and their schedules...');
     const checkResult = await session.run(`
@@ -619,13 +626,14 @@ export async function getMedicationsDue(minutesAhead: number): Promise<Medicatio
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
     const endMinutes = end.getHours() * 60 + end.getMinutes();
 
-    console.log('Debug - Time window:', {
+    console.log('Debug - Time comparison values:', {
       currentDay,
       mappedDay: dayMap[currentDay],
       nowMinutes,
       endMinutes,
       now: now.toLocaleTimeString(),
-      end: end.toLocaleTimeString()
+      end: end.toLocaleTimeString(),
+      timeWindow: `${nowMinutes} to ${endMinutes} minutes since midnight`
     });
 
     const result = await session.run(`
@@ -644,7 +652,6 @@ export async function getMedicationsDue(minutesAhead: number): Promise<Medicatio
         m.name as name,
         u.phone as phone,
         r.schedule as scheduledTime,
-        r.days as days,
         scheduleMinutes
     `, {
       currentDay: dayMap[currentDay],
@@ -657,11 +664,18 @@ export async function getMedicationsDue(minutesAhead: number): Promise<Medicatio
       name: record.get('name'),
       phone: record.get('phone'),
       scheduledTime: record.get('scheduledTime'),
-      days: record.get('days'),
       scheduleMinutes: record.get('scheduleMinutes')
     }));
 
-    console.log('Debug - Found medications:', medications);
+    console.log('Debug - Query results:', {
+      foundMedications: medications.length,
+      medications: medications.map(med => ({
+        ...med,
+        timeInMinutes: med.scheduleMinutes,
+        timeFormatted: `${Math.floor(med.scheduleMinutes/60)}:${med.scheduleMinutes%60}`
+      }))
+    });
+
     return medications;
   } finally {
     await session.close();

@@ -80,25 +80,63 @@ async function sendWhatsAppNotification(phoneNumber: string, medications: string
 
 export async function GET() {
   try {
-    // This endpoint should be called by a cron job every 15 minutes
+    const now = new Date();
+    console.log('Debug - Starting medication check at:', {
+      currentTime: now.toISOString(),
+      localTime: now.toLocaleTimeString(),
+      utcTime: now.toUTCString()
+    });
     
+    // This endpoint should be called by a cron job every 15 minutes
     // Get all medications due in the next 15 minutes
     const medicationsDue = await getMedicationsDue(15);
+    console.log('Debug - Medications due:', {
+      count: medicationsDue.length,
+      medications: medicationsDue.map(med => ({
+        name: med.name,
+        userId: med.userId,
+        scheduledTime: med.scheduledTime
+      }))
+    });
     
     // Group medications by user
     const userMedications = new Map<string, { phone: string, medications: string[] }>();
     
     medicationsDue.forEach(med => {
+      console.log('Debug - Processing medication:', {
+        name: med.name,
+        userId: med.userId,
+        phone: med.phone,
+        scheduledTime: med.scheduledTime
+      });
+      
       if (!userMedications.has(med.userId)) {
         userMedications.set(med.userId, { phone: med.phone, medications: [] });
       }
       userMedications.get(med.userId)?.medications.push(med.name);
     });
 
+    console.log('Debug - Grouped medications by user:', {
+      userCount: userMedications.size,
+      users: Array.from(userMedications.entries()).map(([userId, data]) => ({
+        userId,
+        phone: data.phone,
+        medicationCount: data.medications.length,
+        medications: data.medications
+      }))
+    });
+
     // Send notifications for each user
     const notifications = Array.from(userMedications.entries()).map(async ([userId, data]) => {
       try {
+        console.log('Debug - Attempting to send notification:', {
+          userId,
+          phone: data.phone,
+          medications: data.medications
+        });
+        
         await sendWhatsAppNotification(data.phone, data.medications);
+        console.log('Debug - Successfully sent notification to:', userId);
         return { userId, status: 'success' };
       } catch (error) {
         console.error(`Failed to send notification to user ${userId}:`, error);
@@ -107,6 +145,7 @@ export async function GET() {
     });
 
     const results = await Promise.all(notifications);
+    console.log('Debug - Notification results:', results);
 
     return NextResponse.json({ success: true, results });
   } catch (error) {
