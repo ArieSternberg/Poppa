@@ -1,6 +1,6 @@
 {
   "crons": [{
-    "path": "/api/notifications",
+    "path": "/api/notifications/Meds_confirmation",
     "schedule": "*/15 * * * *"
   }]
 } 
