@@ -577,39 +577,26 @@ export async function searchMedications(query: string): Promise<DrugResult[]> {
 }
 
 export async function getMedicationsDue(minutesAhead: number): Promise<MedicationDue[]> {
-  if (!driver) {
-    driver = initNeo4j();
-  }
-  const session = driver.session();
+  let session;
   try {
+    if (!driver) {
+      driver = initNeo4j();
+    }
+    session = driver.session();
+    
     const now = new Date();
     const end = new Date(now.getTime() + minutesAhead * 60000);
     const currentDay = now.toLocaleDateString('en-US', { weekday: 'short' });
     
-    console.log('Debug - Time window calculation:', {
-      currentTime: now.toISOString(),
-      endTime: end.toISOString(),
-      currentDay,
-      minutesAhead
-    });
-    
-    // First, let's see what medications exist at all
-    console.log('Debug - Checking all medications and their schedules...');
-    const checkResult = await session.run(`
-      MATCH (u:User)-[r:TAKES]->(m:Medication)
-      RETURN 
-        u.id as userId,
-        m.name as name,
-        r.days as days,
-        r.schedule as schedule
-    `);
-    
-    console.log('Debug - All medications:', checkResult.records.map(record => ({
-      userId: record.get('userId'),
-      name: record.get('name'),
-      days: record.get('days'),
-      schedule: record.get('schedule')
-    })));
+    console.warn('NOTIFICATION_DEBUG', JSON.stringify({
+      event: 'time_window_calculation',
+      data: {
+        currentTime: now.toISOString(),
+        endTime: end.toISOString(),
+        currentDay,
+        minutesAhead
+      }
+    }));
 
     // Convert day abbreviations
     const dayMap: { [key: string]: string } = {
@@ -626,15 +613,18 @@ export async function getMedicationsDue(minutesAhead: number): Promise<Medicatio
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
     const endMinutes = end.getHours() * 60 + end.getMinutes();
 
-    console.log('Debug - Time comparison values:', {
-      currentDay,
-      mappedDay: dayMap[currentDay],
-      nowMinutes,
-      endMinutes,
-      now: now.toLocaleTimeString(),
-      end: end.toLocaleTimeString(),
-      timeWindow: `${nowMinutes} to ${endMinutes} minutes since midnight`
-    });
+    console.warn('NOTIFICATION_DEBUG', JSON.stringify({
+      event: 'time_comparison_values',
+      data: {
+        currentDay,
+        mappedDay: dayMap[currentDay],
+        nowMinutes,
+        endMinutes,
+        now: now.toLocaleTimeString(),
+        end: end.toLocaleTimeString(),
+        timeWindow: `${nowMinutes} to ${endMinutes} minutes since midnight`
+      }
+    }));
 
     const result = await session.run(`
       MATCH (u:User)-[r:TAKES]->(m:Medication)
@@ -651,7 +641,7 @@ export async function getMedicationsDue(minutesAhead: number): Promise<Medicatio
         u.id as userId,
         m.name as name,
         u.phone as phone,
-        r.schedule as scheduledTime,
+        time as scheduledTime,
         scheduleMinutes
     `, {
       currentDay: dayMap[currentDay],
@@ -663,22 +653,28 @@ export async function getMedicationsDue(minutesAhead: number): Promise<Medicatio
       userId: record.get('userId'),
       name: record.get('name'),
       phone: record.get('phone'),
-      scheduledTime: record.get('scheduledTime'),
-      scheduleMinutes: record.get('scheduleMinutes')
+      scheduledTime: record.get('scheduledTime')
     }));
 
-    console.log('Debug - Query results:', {
-      foundMedications: medications.length,
-      medications: medications.map(med => ({
-        ...med,
-        timeInMinutes: med.scheduleMinutes,
-        timeFormatted: `${Math.floor(med.scheduleMinutes/60)}:${med.scheduleMinutes%60}`
-      }))
-    });
+    console.warn('NOTIFICATION_DEBUG', JSON.stringify({
+      event: 'medications_found',
+      data: {
+        count: medications.length,
+        medications: medications.map(med => ({
+          ...med,
+          timeFormatted: med.scheduledTime
+        }))
+      }
+    }));
 
     return medications;
+  } catch (error) {
+    console.error('Error in getMedicationsDue:', error);
+    throw error;
   } finally {
-    await session.close();
+    if (session) {
+      await session.close();
+    }
   }
 }
 

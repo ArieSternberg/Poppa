@@ -81,77 +81,67 @@ async function sendWhatsAppNotification(phoneNumber: string, medications: string
 export async function GET() {
   try {
     const now = new Date();
-    console.log('Debug - Starting medication check at:', {
-      currentTime: now.toISOString(),
-      localTime: now.toLocaleTimeString(),
-      utcTime: now.toUTCString()
-    });
+    console.warn('NOTIFICATION_DEBUG', JSON.stringify({
+      event: 'start_check',
+      timestamp: {
+        currentTime: now.toISOString(),
+        localTime: now.toLocaleTimeString(),
+        utcTime: now.toUTCString()
+      }
+    }));
+
+    // Initialize Neo4j at the start of the request
+    initNeo4j();
     
-    // This endpoint should be called by a cron job every 15 minutes
     // Get all medications due in the next 15 minutes
     const medicationsDue = await getMedicationsDue(15);
-    console.log('Debug - Medications due:', {
-      count: medicationsDue.length,
-      medications: medicationsDue.map(med => ({
-        name: med.name,
-        userId: med.userId,
-        scheduledTime: med.scheduledTime
-      }))
-    });
+    
+    if (medicationsDue.length === 0) {
+      console.warn('NOTIFICATION_DEBUG', JSON.stringify({
+        event: 'no_medications_due',
+        timestamp: new Date().toISOString()
+      }));
+      return NextResponse.json({ success: true, results: [] });
+    }
     
     // Group medications by user
     const userMedications = new Map<string, { phone: string, medications: string[] }>();
     
     medicationsDue.forEach(med => {
-      console.log('Debug - Processing medication:', {
-        name: med.name,
-        userId: med.userId,
-        phone: med.phone,
-        scheduledTime: med.scheduledTime
-      });
-      
       if (!userMedications.has(med.userId)) {
         userMedications.set(med.userId, { phone: med.phone, medications: [] });
       }
       userMedications.get(med.userId)?.medications.push(med.name);
     });
 
-    console.log('Debug - Grouped medications by user:', {
-      userCount: userMedications.size,
-      users: Array.from(userMedications.entries()).map(([userId, data]) => ({
-        userId,
-        phone: data.phone,
-        medicationCount: data.medications.length,
-        medications: data.medications
-      }))
-    });
-
     // Send notifications for each user
     const notifications = Array.from(userMedications.entries()).map(async ([userId, data]) => {
       try {
-        console.log('Debug - Attempting to send notification:', {
-          userId,
-          phone: data.phone,
-          medications: data.medications
-        });
-        
         await sendWhatsAppNotification(data.phone, data.medications);
-        console.log('Debug - Successfully sent notification to:', userId);
         return { userId, status: 'success' };
       } catch (error) {
-        console.error(`Failed to send notification to user ${userId}:`, error);
-        return { userId, status: 'error', error };
+        console.error('Failed to send notification:', error);
+        return { userId, status: 'error', error: error instanceof Error ? error.message : String(error) };
       }
     });
 
     const results = await Promise.all(notifications);
-    console.log('Debug - Notification results:', results);
+    
+    console.warn('NOTIFICATION_DEBUG', JSON.stringify({
+      event: 'notifications_complete',
+      data: {
+        totalUsers: results.length,
+        successCount: results.filter(r => r.status === 'success').length,
+        errorCount: results.filter(r => r.status === 'error').length,
+        results
+      }
+    }));
 
     return NextResponse.json({ success: true, results });
   } catch (error) {
     console.error('Error in notification service:', error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: error instanceof Error ? error.message : "Internal server error" },
       { status: 500 }
     );
   }

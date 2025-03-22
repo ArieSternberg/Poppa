@@ -61,7 +61,14 @@ export async function POST(request: Request) {
     // Read formData once
     const formData = await request.formData()
     const params = Object.fromEntries(formData)
-    console.log('Webhook params:', params)
+    
+    // Log ALL incoming parameters to see what Twilio sends
+    console.log('Full webhook params:', {
+      ...params,
+      Body: params['Body'],
+      ButtonText: params['ButtonText'],
+      ButtonPayload: params['ButtonPayload']
+    })
     
     // Validate Twilio request signature in production
     if (process.env.NODE_ENV === 'production') {
@@ -94,7 +101,16 @@ export async function POST(request: Request) {
 
     const from = params['From'] as string
     const body = params['Body'] as string
-    console.log('Processing message:', { from, body })
+    const buttonPayload = params['ButtonPayload'] as string | undefined
+    const buttonText = params['ButtonText'] as string | undefined
+    
+    console.log('Quick Reply Debug:', { 
+      from, 
+      body,
+      buttonPayload,
+      buttonText,
+      isQuickReply: !!buttonPayload || !!buttonText
+    })
     
     // Extract phone number from WhatsApp format
     const phoneNumber = from.replace('whatsapp:', '')
@@ -107,8 +123,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true })
     }
 
-    // Handle "Yes!" response for invite flow
-    if (body?.toLowerCase().includes('yes')) {
+    // Handle "Yes!" response from both elder and caretaker welcome messages
+    const validWelcomePayloads = ['Yes_welcome_to_elder', 'Yes_welcome_to_ct']
+    if (buttonText === 'Yes!' && validWelcomePayloads.includes(buttonPayload || '')) {
+      console.log('Welcome message "Yes!" detected:', {
+        buttonText,
+        buttonPayload,
+        userType: buttonPayload?.includes('elder') ? 'Elder' : 'Caretaker'
+      })
       await sendInviteFamilyMessages(phoneNumber)
       return NextResponse.json({ success: true })
     }
