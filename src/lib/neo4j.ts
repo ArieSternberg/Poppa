@@ -3,7 +3,7 @@ import neo4j, { Driver, ManagedTransaction } from 'neo4j-driver'
 let driver: Driver | null = null
 
 interface MedicationData {
-  name: string
+  Name: string
   [key: string]: string // for future extensibility
 }
 
@@ -24,7 +24,7 @@ export interface DrugResult {
 
 interface MedicationDue {
   userId: string;
-  name: string;
+  Name: string;
   phone: string;
   scheduledTime: string;
 }
@@ -195,14 +195,14 @@ export async function getUser(userId: string) {
 // Medication-related queries
 export async function createMedication(medicationData: MedicationData) {
     const cypher = `
-        MERGE (m:Medication {name: $name})
+        MERGE (m:Medication {Name: $Name})
         ON CREATE SET m.id = randomUUID()
         RETURN m
     `
     const session = await getSession()
     try {
-        console.log('Creating/finding medication with name:', medicationData.name)
-        const result = await session.run(cypher, { name: medicationData.name })
+        console.log('Creating/finding medication with Name:', medicationData.Name)
+        const result = await session.run(cypher, { Name: medicationData.Name })
         console.log('Medication node result:', result.records[0].get('m').properties)
         return result.records
     } catch (error) {
@@ -532,20 +532,20 @@ export async function searchMedications(query: string): Promise<DrugResult[]> {
   console.log('Searching medications with query:', query)
   const cypher = `
     MATCH (m:Medication)
-    WHERE toLower(m.name) CONTAINS toLower($query)
+    WHERE toLower(m.Name) CONTAINS toLower($query)
        OR toLower(m.brandName) CONTAINS toLower($query)
        OR toLower(m.genericName) CONTAINS toLower($query)
     WITH m,
       CASE 
-        WHEN toLower(m.name) = toLower($query) THEN 4
-        WHEN toLower(m.name) STARTS WITH toLower($query) THEN 3
+        WHEN toLower(m.Name) = toLower($query) THEN 4
+        WHEN toLower(m.Name) STARTS WITH toLower($query) THEN 3
         WHEN toLower(m.brandName) STARTS WITH toLower($query) THEN 2
         WHEN toLower(m.genericName) STARTS WITH toLower($query) THEN 1
         ELSE 0
       END as priority
     // Use the elementId() function to get Neo4j's internal ID
-    RETURN elementId(m) as id, m.name as name, m.brandName as brandName, m.genericName as genericName
-    ORDER BY priority DESC, m.name
+    RETURN elementId(m) as id, m.Name as name, m.brandName as brandName, m.genericName as genericName
+    ORDER BY priority DESC, m.Name
     LIMIT 10
   `
   const session = await getSession()
@@ -639,7 +639,7 @@ export async function getMedicationsDue(minutesAhead: number): Promise<Medicatio
         AND scheduleMinutes < $endMinutes + 1
       RETURN DISTINCT
         u.id as userId,
-        m.name as name,
+        m.Name as name,
         u.phone as phone,
         time as scheduledTime,
         scheduleMinutes
@@ -651,7 +651,7 @@ export async function getMedicationsDue(minutesAhead: number): Promise<Medicatio
 
     const medications = result.records.map(record => ({
       userId: record.get('userId'),
-      name: record.get('name'),
+      Name: record.get('name'),
       phone: record.get('phone'),
       scheduledTime: record.get('scheduledTime')
     }));

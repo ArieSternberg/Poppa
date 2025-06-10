@@ -82,7 +82,7 @@ export function AddMedicationComponent() {
       // Create or find medication node and get its elementId
       const session = await getSession()
       const result = await session.run(`
-        MERGE (m:Medication {name: $name})
+        MERGE (m:Medication {Name: $name})
         ON CREATE SET m.id = randomUUID()
         RETURN elementId(m) as id, m
       `, { name: currentMedication.name })
