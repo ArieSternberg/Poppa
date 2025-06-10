@@ -111,7 +111,7 @@ export async function GET() {
       if (!userMedications.has(med.userId)) {
         userMedications.set(med.userId, { phone: med.phone, medications: [] });
       }
-      userMedications.get(med.userId)?.medications.push(med.name);
+      userMedications.get(med.userId)?.medications.push(med.Name);
     });
 
     // Send notifications for each user
