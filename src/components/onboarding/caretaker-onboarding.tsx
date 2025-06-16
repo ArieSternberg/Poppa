@@ -25,7 +25,8 @@ export function CaretakerOnboardingComponent({ onBack, onComplete }: CaretakerOn
   const [userProfile, setUserProfile] = useState<UserProfile>({
     role: 'Caretaker',
     sex: 'Male',
-    age: 35
+    age: 35,
+    language: 'en'  // Default to English
   })
   const [elderConnection, setElderConnection] = useState<ElderConnection>({
     phoneNumber: '',
@@ -107,6 +108,23 @@ export function CaretakerOnboardingComponent({ onBack, onComplete }: CaretakerOn
             max={120}
             className="mt-2"
           />
+        </div>
+        <div>
+          <Label>Language Preference</Label>
+          <RadioGroup
+            value={userProfile.language}
+            onValueChange={(value) => setUserProfile({ ...userProfile, language: value })}
+            className="mt-2"
+          >
+            <div className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded">
+              <RadioGroupItem value="en" id="en" />
+              <Label htmlFor="en">English</Label>
+            </div>
+            <div className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded">
+              <RadioGroupItem value="es" id="es" />
+              <Label htmlFor="es">Español</Label>
+            </div>
+          </RadioGroup>
         </div>
         <div className="flex justify-between pt-4">
           <Button onClick={onBack} variant="outline">

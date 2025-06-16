@@ -44,7 +44,8 @@ export function ElderOnboardingComponent({ onBack, onComplete }: ElderOnboarding
   const [userProfile, setUserProfile] = useState<UserProfile>({
     role: 'Elder',
     sex: 'Male',
-    age: 65
+    age: 65,
+    language: 'en'
   })
   const router = useRouter()
   const daysOfWeek = ['M', 'T', 'W', 'Th', 'F', 'Sa', 'Su']
@@ -190,6 +191,23 @@ export function ElderOnboardingComponent({ onBack, onComplete }: ElderOnboarding
             max={120}
             className="mt-2"
           />
+        </div>
+        <div>
+          <Label>Language Preference</Label>
+          <RadioGroup
+            value={userProfile.language}
+            onValueChange={(value) => setUserProfile({ ...userProfile, language: value })}
+            className="mt-2"
+          >
+            <div className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded">
+              <RadioGroupItem value="en" id="en" />
+              <Label htmlFor="en">English</Label>
+            </div>
+            <div className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded">
+              <RadioGroupItem value="es" id="es" />
+              <Label htmlFor="es">Español</Label>
+            </div>
+          </RadioGroup>
         </div>
         <div className="flex justify-between pt-4">
           <Button onClick={onBack} variant="outline">

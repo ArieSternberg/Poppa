@@ -25,7 +25,8 @@ export function UserProfileComponent() {
     phone: user?.primaryPhoneNumber?.phoneNumber || '',
     age: '',
     role: '',
-    sex: ''
+    sex: '',
+    language: 'en'  // Default to English
   })
 
   // Fetch current user data from Neo4j when component mounts
@@ -203,6 +204,24 @@ export function UserProfileComponent() {
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="Other" id="other" />
                   <Label htmlFor="other">Other</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Language Preference</Label>
+              <RadioGroup
+                value={formData.language}
+                onValueChange={(value) => setFormData({ ...formData, language: value })}
+                className="flex space-x-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="en" id="en" />
+                  <Label htmlFor="en">English</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="es" id="es" />
+                  <Label htmlFor="es">Español</Label>
                 </div>
               </RadioGroup>
             </div>

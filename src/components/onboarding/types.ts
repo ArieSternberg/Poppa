@@ -25,6 +25,7 @@ export interface UserProfile {
   role: string
   sex: string
   age: number
+  language: string  // 'en' for English, 'es' for Spanish
 }
 
 export interface ElderUser {

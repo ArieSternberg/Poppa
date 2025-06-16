@@ -29,6 +29,55 @@ interface MedicationDue {
   scheduledTime: string;
 }
 
+interface ConversationNode {
+  id: string;
+  timestamp: string;
+  message: string;
+  isTemplate: boolean;
+  templateType?: string | null;
+  templateContent?: string;
+  response?: string;
+  buttonResponse?: {
+    text: string;
+    payload: string;
+  };
+}
+
+interface UserMetadata {
+  profile: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+    age?: number;
+    sex?: string;
+    phone: string;
+    email: string;
+    language: string;  // 'en' for English, 'es' for Spanish
+  };
+  relationships: {
+    caretakers: Array<{
+      id: string;
+      firstName: string;
+      lastName: string;
+      phone: string;
+    }>;
+    elders: Array<{
+      id: string;
+      firstName: string;
+      lastName: string;
+      phone: string;
+    }>;
+  };
+  medications: Array<{
+    name: string;
+    schedule: string[];
+    days: string[];
+    pillsPerDose: number[];
+    dosage: string;
+  }>;
+}
+
 export function initNeo4j() {
     const uri = process.env.NEO4J_URI
     const username = process.env.NEO4J_USERNAME
@@ -116,6 +165,7 @@ export async function createUser(userId: string, clerkData: {
     age?: number;
     role?: string;
     sex?: string;
+    language?: string;
 }) {
     console.log('createUser called with:', { userId, clerkData, profileData })
 
@@ -128,7 +178,8 @@ export async function createUser(userId: string, clerkData: {
         createdAt: new Date().toISOString(),
         age: profileData?.age || null,
         role: profileData?.role || null,
-        sex: profileData?.sex || null
+        sex: profileData?.sex || null,
+        language: profileData?.language || 'en'  // Default to English
     }
 
     console.log('Constructed userProfile:', userProfile)
@@ -426,6 +477,7 @@ export async function updateUser(userId: string, updateData: {
     age?: number;
     role?: string;
     sex?: string;
+    language?: string;
 }) {
     const cypher = `
         MATCH (u:User {id: $userId})
@@ -706,4 +758,138 @@ export async function updateMedicationSchedule(userId: string, medicationId: str
     } finally {
         await session.close()
     }
+}
+
+// Conversation Management Functions
+export async function storeConversation(phoneNumber: string, data: Partial<ConversationNode>) {
+  const session = await getSession()
+  try {
+    const cypher = `
+      MATCH (u:User {phone: $phone})
+      CREATE (c:Conversation {
+        id: randomUUID(),
+        timestamp: datetime(),
+        message: $message,
+        isTemplate: $isTemplate,
+        templateType: $templateType,
+        templateContent: $templateContent,
+        response: $response,
+        buttonResponse: $buttonResponse
+      })
+      CREATE (u)-[:HAS_CONVERSATION]->(c)
+      RETURN c
+    `
+    
+    const result = await session.run(cypher, {
+      phone: phoneNumber,
+      message: data.message || '',
+      isTemplate: data.isTemplate || false,
+      templateType: data.templateType || null,
+      templateContent: data.templateContent || null,
+      response: data.response || null,
+      buttonResponse: data.buttonResponse || null
+    })
+    
+    return result.records[0]?.get('c').properties
+  } catch (error) {
+    console.error('Error storing conversation:', error)
+    throw error
+  } finally {
+    await session.close()
+  }
+}
+
+export async function getConversationHistory(phoneNumber: string, limit: number = 10) {
+  const session = await getSession()
+  try {
+    const cypher = `
+      MATCH (u:User {phone: $phone})-[:HAS_CONVERSATION]->(c:Conversation)
+      RETURN c
+      ORDER BY c.timestamp DESC
+      LIMIT $limit
+    `
+    
+    const result = await session.run(cypher, { phone: phoneNumber, limit })
+    return result.records.map(record => record.get('c').properties)
+  } catch (error) {
+    console.error('Error getting conversation history:', error)
+    return []
+  } finally {
+    await session.close()
+  }
+}
+
+export async function getUserMetadata(phoneNumber: string): Promise<UserMetadata | null> {
+  const session = await getSession()
+  try {
+    const cypher = `
+      MATCH (u:User {phone: $phone})
+      
+      // Get caretakers
+      OPTIONAL MATCH (c:User:Caretaker)-[:CARES_FOR]->(u)
+      
+      // Get elders (if user is caretaker)
+      OPTIONAL MATCH (u)-[:CARES_FOR]->(e:User:Elder)
+      
+      // Get medications
+      OPTIONAL MATCH (u)-[r:TAKES]->(m:Medication)
+      
+      RETURN u,
+             collect(DISTINCT {
+               id: c.id,
+               firstName: c.firstName,
+               lastName: c.lastName,
+               phone: c.phone
+             }) as caretakers,
+             collect(DISTINCT {
+               id: e.id,
+               firstName: e.firstName,
+               lastName: e.lastName,
+               phone: e.phone
+             }) as elders,
+             collect(DISTINCT {
+               name: m.Name,
+               schedule: r.schedule,
+               days: r.days,
+               pillsPerDose: r.pillsPerDose,
+               dosage: r.dosage
+             }) as medications
+    `
+    
+    const result = await session.run(cypher, { phone: phoneNumber })
+    
+    if (!result.records.length) {
+      return null
+    }
+    
+    const record = result.records[0]
+    const user = record.get('u').properties
+    const caretakers = record.get('caretakers').filter((c: { id: string | null }) => c.id !== null)
+    const elders = record.get('elders').filter((e: { id: string | null }) => e.id !== null)
+    const medications = record.get('medications').filter((m: { name: string | null }) => m.name !== null)
+    
+    return {
+      profile: {
+        id: user.id,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        role: user.role || '',
+        age: user.age,
+        sex: user.sex,
+        phone: user.phone || '',
+        email: user.email || '',
+        language: user.language || 'en'
+      },
+      relationships: {
+        caretakers,
+        elders
+      },
+      medications
+    }
+  } catch (error) {
+    console.error('Error getting user metadata:', error)
+    return null
+  } finally {
+    await session.close()
+  }
 } 
