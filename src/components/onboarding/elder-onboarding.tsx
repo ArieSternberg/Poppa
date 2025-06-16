@@ -10,24 +10,49 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { createUser, linkUserToMedication, searchMedications, DrugResult } from '@/lib/neo4j'
+import { createUser, linkUserToMedication, searchMedications } from '@/lib/neo4j'
 import { useUser } from '@clerk/nextjs'
 import { toast } from "sonner"
 import { useRouter } from 'next/navigation'
-import { Medication, UserProfile } from './types'
+import { UserProfile } from './types'
 
 interface ElderOnboardingProps {
   onBack: () => void;
   onComplete: () => void;
 }
 
+interface DrugResult {
+  id: string
+  Name: string
+  brandName: string
+  genericName: string
+}
+
+interface Medication {
+  id: string
+  Name: string
+  brandName: string
+  genericName: string
+  dosage: number
+  frequency: number
+  schedule: string[]
+  pillsPerDose: number[]
+  days: string[]
+}
+
 export function ElderOnboardingComponent({ onBack, onComplete }: ElderOnboardingProps) {
   const { user } = useUser()
+  const router = useRouter()
   const [step, setStep] = useState(1)
+  const [error, setError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<DrugResult[]>([])
+  const [selectedDrug, setSelectedDrug] = useState<string | null>(null)
   const [medications, setMedications] = useState<Medication[]>([])
+  const [isLoading, setIsLoading] = useState(false)
   const [currentMedication, setCurrentMedication] = useState<Medication>({
     id: '',
-    name: '',
+    Name: '',
     brandName: '',
     genericName: '',
     dosage: 0.25,
@@ -36,18 +61,12 @@ export function ElderOnboardingComponent({ onBack, onComplete }: ElderOnboarding
     pillsPerDose: [1],
     days: ['Everyday']
   })
-  const [searchResults, setSearchResults] = useState<DrugResult[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedDrug, setSelectedDrug] = useState<string | null>(null)
   const [userProfile, setUserProfile] = useState<UserProfile>({
     role: 'Elder',
     sex: 'Male',
     age: 65,
     language: 'en'
   })
-  const router = useRouter()
   const daysOfWeek = ['M', 'T', 'W', 'Th', 'F', 'Sa', 'Su']
 
   const handleSearch = async (query: string) => {
@@ -78,12 +97,12 @@ export function ElderOnboardingComponent({ onBack, onComplete }: ElderOnboarding
 
   const handleAddMedication = () => {
     console.log('Adding medication with data:', currentMedication)
-    if (currentMedication.name) {
+    if (currentMedication.Name) {
       setMedications([...medications, currentMedication])
       console.log('Updated medications list:', [...medications, currentMedication])
       setCurrentMedication({
         id: '',
-        name: '',
+        Name: '',
         brandName: '',
         genericName: '',
         dosage: 0.25,
@@ -104,9 +123,9 @@ export function ElderOnboardingComponent({ onBack, onComplete }: ElderOnboarding
     setCurrentMedication(medications[index])
     setMedications(medications.filter((_, i) => i !== index))
     setStep(3) // Go to medication details
-    setSearchQuery(medications[index].name)
+    setSearchQuery(medications[index].Name)
     setSearchResults([])
-    setSelectedDrug(medications[index].name)
+    setSelectedDrug(medications[index].Name)
   }
 
   const handleFinish = async () => {
@@ -254,35 +273,28 @@ export function ElderOnboardingComponent({ onBack, onComplete }: ElderOnboarding
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2, delay: index * 0.05 }}
               className={`p-2 hover:bg-gray-100 cursor-pointer rounded flex justify-between items-center ${
-                selectedDrug === drug.name ? 'bg-blue-100' : ''
+                selectedDrug === drug.Name ? 'bg-blue-100' : ''
               }`}
               onClick={() => {
                 console.log('Selected drug with ID:', drug.id)
+                setSearchQuery(drug.Name)
+                setSelectedDrug(drug.Name)
                 setCurrentMedication({
                   ...currentMedication,
                   id: drug.id,
-                  name: drug.name,
-                  brandName: drug.brandName,
-                  genericName: drug.genericName
+                  Name: drug.Name,
+                  brandName: drug.brandName || '',
+                  genericName: drug.genericName || ''
                 })
-                console.log('Updated currentMedication:', {
-                  ...currentMedication,
-                  id: drug.id,
-                  name: drug.name,
-                  brandName: drug.brandName,
-                  genericName: drug.genericName
-                })
-                setSearchQuery(drug.name)
-                setSelectedDrug(drug.name)
               }}
             >
               <div>
-                <p className="font-bold">{drug.name}</p>
+                <p className="font-bold">{drug.Name}</p>
                 {drug.genericName && (
                   <p className="text-sm text-gray-500">{drug.genericName}</p>
                 )}
               </div>
-              {selectedDrug === drug.name && (
+              {selectedDrug === drug.Name && (
                 <Button size="sm" variant="outline" onClick={(e) => {
                   e.stopPropagation()
                   setStep(3)
@@ -321,7 +333,7 @@ export function ElderOnboardingComponent({ onBack, onComplete }: ElderOnboarding
             <TableBody>
               {medications.map((med, index) => (
                 <TableRow key={index}>
-                  <TableCell>{med.name}</TableCell>
+                  <TableCell>{med.Name}</TableCell>
                   <TableCell>{med.frequency}</TableCell>
                   <TableCell>{med.days.join(', ')}</TableCell>
                   <TableCell>
@@ -355,7 +367,7 @@ export function ElderOnboardingComponent({ onBack, onComplete }: ElderOnboarding
       exit={{ opacity: 0, y: -20 }}
       className="space-y-4"
     >
-      <h2 className="text-2xl font-bold">Medication Details: {currentMedication.name}</h2>
+      <h2 className="text-2xl font-bold">Medication Details: {currentMedication.Name}</h2>
       <div className="space-y-2">
         <Label htmlFor="dosage">Dosage (mg)</Label>
         <div className="flex items-center gap-2">
@@ -457,7 +469,7 @@ export function ElderOnboardingComponent({ onBack, onComplete }: ElderOnboarding
       exit={{ opacity: 0, y: -20 }}
       className="space-y-4"
     >
-      <h2 className="text-2xl font-bold">Schedule for {currentMedication.name}</h2>
+      <h2 className="text-2xl font-bold">Schedule for {currentMedication.Name}</h2>
       {currentMedication.schedule.map((time, index) => (
         <motion.div
           key={index}
@@ -612,7 +624,7 @@ export function ElderOnboardingComponent({ onBack, onComplete }: ElderOnboarding
           <TableBody>
             {medications.map((med, index) => (
               <TableRow key={index}>
-                <TableCell>{med.name}</TableCell>
+                <TableCell>{med.Name}</TableCell>
                 <TableCell>{med.frequency}</TableCell>
                 <TableCell>{med.days.join(', ')}</TableCell>
               </TableRow>
