@@ -19,11 +19,12 @@ export async function GET() {
     } finally {
       await session.close()
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Database connection test failed:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
     return NextResponse.json({ 
       success: false, 
-      error: error.message || 'Unknown error occurred'
+      error: errorMessage
     }, { status: 500 })
   }
 } 
