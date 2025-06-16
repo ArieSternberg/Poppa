@@ -71,11 +71,10 @@ async function processWithAgent(message: string, phoneNumber: string, templateCo
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        message,
-        phoneNumber,
-        templateContext,
+        text: message,
         metadata: {
           user: userMetadata,
+          templateContext,
           language: userMetadata?.profile.language || 'en'
         }
       })
@@ -86,7 +85,7 @@ async function processWithAgent(message: string, phoneNumber: string, templateCo
     }
 
     const result = await response.json()
-    return result.response || "I'm sorry, I couldn't process that message."
+    return result.responses?.[0] || "I'm sorry, I couldn't process that message."
   } catch (error) {
     console.error('Error calling agent:', error)
     return "I'm sorry, I'm having trouble right now. Please try again later."
