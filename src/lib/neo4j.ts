@@ -17,7 +17,7 @@ interface MedicationSchedule {
 
 export interface DrugResult {
   id: string
-  name: string
+  Name: string
   brandName: string
   genericName: string
 }
@@ -173,7 +173,7 @@ export async function createUser(userId: string, clerkData: {
         id: userId,
         firstName: clerkData.firstName || '',
         lastName: clerkData.lastName || '',
-        email: clerkData.emailAddresses[0] || '',
+        email: clerkData.emailAddresses[0] || '', // Store email even if unverified
         phone: clerkData.phoneNumbers[0] || '',
         createdAt: new Date().toISOString(),
         age: profileData?.age || null,
@@ -581,51 +581,24 @@ export const recordMedicationStatus = async (
 };
 
 export async function searchMedications(query: string): Promise<DrugResult[]> {
-  console.log('Searching medications with query:', query)
-  const cypher = `
-    MATCH (m:Medication)
-    WHERE toLower(m.Name) CONTAINS toLower($query)
-       OR toLower(m.brandName) CONTAINS toLower($query)
-       OR toLower(m.genericName) CONTAINS toLower($query)
-    WITH m,
-      CASE 
-        WHEN toLower(m.Name) = toLower($query) THEN 4
-        WHEN toLower(m.Name) STARTS WITH toLower($query) THEN 3
-        WHEN toLower(m.brandName) STARTS WITH toLower($query) THEN 2
-        WHEN toLower(m.genericName) STARTS WITH toLower($query) THEN 1
-        ELSE 0
-      END as priority
-    // Use the elementId() function to get Neo4j's internal ID
-    RETURN elementId(m) as id, m.Name as name, m.brandName as brandName, m.genericName as genericName
-    ORDER BY priority DESC, m.Name
-    LIMIT 10
-  `
-  const session = await getSession()
-  try {
-    console.log('Executing medication search query:', cypher)
-    const result = await session.run(cypher, { query })
-    console.log('Raw search results:', result.records.map(record => ({
-      id: record.get('id'),
-      name: record.get('name'),
-      brandName: record.get('brandName'),
-      genericName: record.get('genericName')
-    })))
-    
-    const medications = result.records.map(record => ({
-      id: record.get('id'),
-      name: record.get('name'),
-      brandName: record.get('brandName') || '',
-      genericName: record.get('genericName') || ''
-    }))
-    
-    console.log('Processed search results:', medications)
-    return medications
-  } catch (error) {
-    console.error('Error searching medications:', error)
-    throw error
-  } finally {
-    await session.close()
-  }
+    const cypher = `
+        MATCH (m:Medication)
+        WHERE toLower(m.Name) CONTAINS toLower($query)
+        RETURN m.id as id, m.Name as Name, m.brandName as brandName, m.genericName as genericName
+        LIMIT 5
+    `
+    const session = await getSession()
+    try {
+        const result = await session.run(cypher, { query })
+        return result.records.map(record => ({
+            id: record.get('id'),
+            Name: record.get('Name'),
+            brandName: record.get('brandName') || '',
+            genericName: record.get('genericName') || ''
+        }))
+    } finally {
+        await session.close()
+    }
 }
 
 export async function getMedicationsDue(minutesAhead: number): Promise<MedicationDue[]> {

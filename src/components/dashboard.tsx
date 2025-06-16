@@ -18,7 +18,7 @@ import { EditMedicationModal } from './edit-medication-modal'
 interface Medication {
   medication: {
     id: string
-    name: string
+    Name: string
   }
   schedule: {
     schedule: string[]
@@ -156,7 +156,7 @@ export function DashboardComponent() {
       if (shouldTakeMed) {
         med.schedule.schedule.forEach((time, index) => {
           todaysMeds.push({
-            medicationName: med.medication.name,
+            medicationName: med.medication.Name,
             time: time,
             pillCount: med.schedule.pillsPerDose[index]
           })
@@ -295,7 +295,7 @@ export function DashboardComponent() {
                       <TableBody>
                         {medications.map((med, index) => (
                           <TableRow key={med.medication.id || index}>
-                            <TableCell className="font-medium">{med.medication.name}</TableCell>
+                            <TableCell className="font-medium">{med.medication.Name}</TableCell>
                             <TableCell>{med.schedule.pillsPerDose[0]} pill(s)</TableCell>
                             <TableCell>{med.schedule.frequency} time(s) daily</TableCell>
                             <TableCell>{med.schedule.schedule.map(formatTime).join(', ')}</TableCell>

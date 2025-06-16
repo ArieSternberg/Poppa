@@ -16,6 +16,7 @@ import { toast } from "sonner"
 interface DrugResult {
   brand_name: string
   generic_name: string
+  Name: string
 }
 
 interface FDADrugResult {
@@ -29,7 +30,7 @@ export function AddMedicationComponent() {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [currentMedication, setCurrentMedication] = useState({
-    name: '',
+    Name: '',
     brandName: '',
     genericName: '',
     dosage: 0.25,
@@ -61,7 +62,8 @@ export function AddMedicationComponent() {
       const data = await response.json()
       const results = data.results.map((result: FDADrugResult) => ({
         brand_name: result.brand_name,
-        generic_name: result.generic_name
+        generic_name: result.generic_name,
+        Name: result.brand_name // Use brand_name as the Name property
       }))
       setSearchResults(results)
       if (results.length === 0) {
@@ -85,7 +87,7 @@ export function AddMedicationComponent() {
         MERGE (m:Medication {Name: $name})
         ON CREATE SET m.id = randomUUID()
         RETURN elementId(m) as id, m
-      `, { name: currentMedication.name })
+      `, { name: currentMedication.Name })
 
       if (!result.records || result.records.length === 0) {
         throw new Error('Failed to create medication')
@@ -155,7 +157,7 @@ export function AddMedicationComponent() {
                 const drugName = drug.brand_name || drug.generic_name
                 setCurrentMedication({
                   ...currentMedication,
-                  name: drugName,
+                  Name: drugName,
                   brandName: drug.brand_name,
                   genericName: drug.generic_name
                 })

@@ -60,11 +60,11 @@ export function UserProfileComponent() {
 
     setLoading(true)
     try {
-      // Update in Neo4j
+      // Update in Neo4j - now including email
       await updateUser(user.id, {
         firstName: formData.firstName,
         lastName: formData.lastName,
-        email: formData.email,
+        email: formData.email, // Always update email in Neo4j
         phone: formData.phone,
         age: parseInt(formData.age),
         sex: formData.sex
@@ -76,19 +76,31 @@ export function UserProfileComponent() {
         lastName: formData.lastName
       })
 
-      if (formData.email !== user.primaryEmailAddress?.emailAddress) {
-        await user.createEmailAddress({ email: formData.email })
-      }
-
+      // Handle phone update if changed
       if (formData.phone !== user.primaryPhoneNumber?.phoneNumber) {
         await user.createPhoneNumber({ phoneNumber: formData.phone })
+      }
+
+      // Only handle email verification if explicitly requested (we can add a button for this later)
+      // For now, just store the email without verification
+      if (formData.email !== user.primaryEmailAddress?.emailAddress) {
+        try {
+          await user.createEmailAddress({ email: formData.email })
+        } catch (error) {
+          // If email creation fails in Clerk, just log it but don't fail the update
+          console.warn('Failed to create email in Clerk:', error)
+        }
       }
 
       toast.success("Profile updated successfully")
       router.push('/dashboard')
     } catch (error) {
       console.error('Error updating profile:', error)
-      toast.error("Failed to update profile")
+      if (error instanceof Error) {
+        toast.error(error.message)
+      } else {
+        toast.error("Failed to update profile")
+      }
     } finally {
       setLoading(false)
     }
