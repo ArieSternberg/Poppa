@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getMedicationsDue, initNeo4j } from "@/lib/neo4j";
 import { NotificationType, notificationTemplates } from '@/config/notificationTemplates';
+import twilio from 'twilio';
 
 // Initialize Neo4j
 initNeo4j();
@@ -9,7 +10,7 @@ initNeo4j();
 console.log('Debug - Environment Variables:', {
   TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID?.slice(0, 5) + '...',
   HAS_AUTH_TOKEN: !!process.env.TWILIO_AUTH_TOKEN,
-  HAS_CONTENT_SID: !!process.env.TWILIO_CONTENT_SID,
+  HAS_CONTENT_SID: !!process.env.TWILIO_MEDICATION_CONTENT_SID,
   HAS_MESSAGING_SERVICE_SID: !!process.env.TWILIO_MESSAGING_SERVICE_SID
 });
 
@@ -19,6 +20,9 @@ const authToken = process.env.TWILIO_AUTH_TOKEN;
 const contentSid = notificationTemplates[NotificationType.MEDICATION_REMINDER].contentSid;
 const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
 const fromNumber = "+13057605575";
+
+// Initialize Twilio client
+const client = twilio(accountSid, authToken);
 
 async function sendWhatsAppNotification(phoneNumber: string, medications: string[]) {
   console.log('Debug - Sending WhatsApp notification:', {
@@ -34,48 +38,34 @@ async function sendWhatsAppNotification(phoneNumber: string, medications: string
   // Format medications with numbers (1., 2., etc.)
   const formattedMedications = medications.map((med, index) => `${index + 1}. ${med}`).join('\n');
 
-  const contentVariables = {
-    "1": formattedMedications
-  };
+  // Format phone numbers for WhatsApp
+  const to = `whatsapp:${phoneNumber}`;
+  const from = `whatsapp:${fromNumber}`;
 
-  const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
-  const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
-
-  const formData = new URLSearchParams();
-  formData.append('To', `whatsapp:${phoneNumber}`);
-  formData.append('From', `whatsapp:${fromNumber}`);
-  formData.append('ContentSid', contentSid!);
-  formData.append('ContentVariables', JSON.stringify(contentVariables));
-  formData.append('MessagingServiceSid', messagingServiceSid!);
-
-  console.log('Debug - Request details:', {
-    url,
-    formData: Object.fromEntries(formData),
-    hasAuth: !!auth
+  // Create content variables in the same format as welcome_elder
+  const contentVariables = JSON.stringify({
+    1: formattedMedications  // Using number key instead of string
   });
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Basic ${auth}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: formData
-  });
+  try {
+    const message = await client.messages.create({
+      contentSid,
+      from,
+      to,
+      contentVariables,
+      messagingServiceSid
+    });
 
-  console.log('Debug - Response:', {
-    status: response.status,
-    statusText: response.statusText,
-    headers: Object.fromEntries(response.headers)
-  });
+    console.log('Debug - Message sent successfully:', {
+      messageId: message.sid,
+      status: message.status
+    });
 
-  if (!response.ok) {
-    const errorBody = await response.text();
-    console.error('Debug - Error body:', errorBody);
-    throw new Error(`Failed to send WhatsApp notification: ${response.statusText}`);
+    return message;
+  } catch (error) {
+    console.error('Debug - Error sending message:', error);
+    throw error;
   }
-
-  return response.json();
 }
 
 export async function GET() {
