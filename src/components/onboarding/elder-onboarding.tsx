@@ -15,6 +15,7 @@ import { useUser } from '@clerk/nextjs'
 import { toast } from "sonner"
 import { useRouter } from 'next/navigation'
 import { UserProfile } from './types'
+import { getSession } from '@/lib/neo4j'
 
 interface ElderOnboardingProps {
   onBack: () => void;
@@ -147,17 +148,39 @@ export function ElderOnboardingComponent({ onBack, onComplete }: ElderOnboarding
       }, userProfile)
 
       // Link to existing medications
+      const session = await getSession()
       for (const med of medications) {
-        const schedule = {
-          schedule: med.schedule,
-          pillsPerDose: med.pillsPerDose,
-          days: med.days,
-          frequency: med.frequency,
-          dosage: `${med.dosage}mg`
-        }
+        try {
+          // Create or find medication node and get its elementId
+          const result = await session.run(`
+            MERGE (m:Medication {Name: $name})
+            ON CREATE SET m.id = randomUUID()
+            RETURN elementId(m) as id, m
+          `, { name: med.Name })
 
-        await linkUserToMedication(user.id, med.id, schedule)
+          if (!result.records || result.records.length === 0) {
+            throw new Error('Failed to create medication')
+          }
+
+          const medicationId = result.records[0].get('id').toString()
+          const schedule = {
+            schedule: med.schedule,
+            pillsPerDose: med.pillsPerDose,
+            days: med.days,
+            frequency: med.frequency,
+            dosage: `${med.dosage}mg`
+          }
+
+          const linkResult = await linkUserToMedication(user.id, medicationId, schedule)
+          if (!linkResult) {
+            throw new Error(`Failed to link medication: ${med.Name}`)
+          }
+        } catch (error) {
+          console.error('Error processing medication:', med.Name, error)
+          throw error // Re-throw to be caught by outer try-catch
+        }
       }
+      await session.close()
 
       toast.success("Profile created successfully!")
       setError(null)
