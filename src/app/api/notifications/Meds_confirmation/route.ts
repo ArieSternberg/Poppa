@@ -35,16 +35,16 @@ async function sendWhatsAppNotification(phoneNumber: string, medications: string
     fromNumber
   });
 
-  // Format medications with numbers (1., 2., etc.)
-  const formattedMedications = medications.map((med, index) => `${index + 1}. ${med}`).join('\n');
+  // Format medications with each on a new line
+  const formattedMedications = medications.join('\n');
 
   // Format phone numbers for WhatsApp
   const to = `whatsapp:${phoneNumber}`;
   const from = `whatsapp:${fromNumber}`;
 
-  // Create content variables in the same format as welcome_elder
+  // Create content variables matching the template format
   const contentVariables = JSON.stringify({
-    1: formattedMedications  // Using number key instead of string
+    "1": formattedMedications
   });
 
   try {
