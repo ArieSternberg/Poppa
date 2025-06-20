@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { getMedicationsDue, initNeo4j } from "@/lib/neo4j";
 import { NotificationType, notificationTemplates } from '@/config/notificationTemplates';
 import twilio from 'twilio';
+import { RedisMemory } from '../../../../lib/redis';
+
+// Initialize Redis
+const memory = new RedisMemory();
 
 // Initialize Neo4j
 initNeo4j();
@@ -24,6 +28,22 @@ const fromNumber = "+13057605575";
 // Initialize Twilio client
 const client = twilio(accountSid, authToken);
 
+async function storeReminderInRedis(phoneNumber: string, medications: string[]) {
+  const reminderMessage = {
+    role: "agent" as const,
+    content: `Hey, did you take your vitamins today?\n${medications.join('\n')}`
+  };
+  
+  try {
+    await memory.save(
+      { thread_id: `chat:phone:${phoneNumber.replace(/[^0-9]/g, '')}` },
+      [reminderMessage]
+    );
+  } catch (error) {
+    console.error('Error storing reminder in Redis:', error);
+  }
+}
+
 async function sendWhatsAppNotification(phoneNumber: string, medications: string[]) {
   console.log('Debug - Sending WhatsApp notification:', {
     phoneNumber,
@@ -37,6 +57,9 @@ async function sendWhatsAppNotification(phoneNumber: string, medications: string
 
   // Format medications with each on a new line
   const formattedMedications = medications.join('\n');
+
+  // Store reminder in Redis before sending
+  await storeReminderInRedis(phoneNumber, medications);
 
   // Format phone numbers for WhatsApp
   const to = `whatsapp:${phoneNumber}`;

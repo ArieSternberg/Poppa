@@ -174,24 +174,24 @@ export async function POST(request: Request) {
 
     // Handle special template responses that bypass agent (Welcome "Yes!" responses)
     const validWelcomePayloads = ['Yes_welcome_to_elder', 'Yes_welcome_to_ct']
-    if (buttonText === 'Yes!' && validWelcomePayloads.includes(buttonPayload || '')) {
+    if (buttonText && buttonPayload && validWelcomePayloads.includes(buttonPayload)) {
       console.log('Welcome message "Yes!" detected - bypassing agent:', {
         buttonText,
         buttonPayload,
-        userType: buttonPayload?.includes('elder') ? 'Elder' : 'Caretaker'
+        userType: buttonPayload.includes('elder') ? 'Elder' : 'Caretaker'
       })
       
       // Store the template response
       await storeConversation(phoneNumber, {
         message: body,
         isTemplate: true,
-        templateType: buttonPayload?.includes('elder') ? 
+        templateType: buttonPayload.includes('elder') ? 
           NotificationType.WELCOME_ELDER : 
           NotificationType.WELCOME_CARETAKER,
-        buttonResponse: buttonText && buttonPayload ? {
-          text: buttonText,
+        buttonResponse: {
+          text: buttonText.trim(),
           payload: buttonPayload
-        } : undefined,
+        },
         response: "Great! Forward the following message to the person you want to invite"
       })
 
@@ -205,40 +205,56 @@ export async function POST(request: Request) {
     const templateContext = templateName ? {
       templateName,
       buttonResponse: buttonText && buttonPayload ? {
-        text: buttonText,
+        text: buttonText.trim(),  // Trim any extra spaces
         payload: buttonPayload
       } : undefined
     } : undefined
 
-    const agentResponse = await processWithAgent(body, phoneNumber, templateContext)
+    try {
+      const agentResponse = await processWithAgent(body, phoneNumber, templateContext)
 
-    // Store the conversation
-    await storeConversation(phoneNumber, {
-      message: body,
-      isTemplate: !!templateName,
-      templateType: templateName || undefined,
-      response: agentResponse,
-      buttonResponse: buttonText && buttonPayload ? {
-        text: buttonText,
-        payload: buttonPayload
-      } : undefined
-    })
+      // Store the conversation
+      await storeConversation(phoneNumber, {
+        message: body,
+        isTemplate: !!templateName,
+        templateType: templateName || undefined,
+        response: agentResponse,
+        buttonResponse: buttonText && buttonPayload ? {
+          text: buttonText.trim(),  // Trim any extra spaces
+          payload: buttonPayload
+        } : undefined
+      })
 
-    // Send agent response back to user
-    await client.messages.create({
-      body: agentResponse,
-      from: `whatsapp:${fromNumber}`,
-      to: `whatsapp:${phoneNumber}`,
-      messagingServiceSid
-    })
+      // Send agent response back to user
+      await client.messages.create({
+        body: agentResponse,
+        from: `whatsapp:${fromNumber}`,
+        to: `whatsapp:${phoneNumber}`,
+        messagingServiceSid
+      })
 
-    console.log('Agent response sent:', agentResponse)
+      console.log('Agent response sent:', agentResponse)
 
-    return NextResponse.json({ 
-      success: true,
-      agentResponse,
-      templateContext: !!templateContext
-    })
+      return NextResponse.json({ 
+        success: true,
+        agentResponse,
+        templateContext: !!templateContext
+      })
+    } catch (error) {
+      console.error('Error in agent processing:', error)
+      // Still store the conversation even if agent fails
+      await storeConversation(phoneNumber, {
+        message: body,
+        isTemplate: !!templateName,
+        templateType: templateName || undefined,
+        response: "I'm sorry, I'm having trouble processing your request right now.",
+        buttonResponse: buttonText && buttonPayload ? {
+          text: buttonText.trim(),
+          payload: buttonPayload
+        } : undefined
+      })
+      throw error  // Re-throw to be caught by outer catch block
+    }
 
   } catch (error) {
     console.error('Error handling webhook:', error)

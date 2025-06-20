@@ -657,11 +657,11 @@ export async function getMedicationsDue(minutesAhead: number): Promise<Medicatio
       WITH u, m, r, time,
         toInteger(split(time, ':')[0]) * 60 + toInteger(split(time, ':')[1]) as scheduleMinutes
       WHERE 
-        // First check days
-        (r.days = ['Everyday'] OR r.days = [$currentDay])
+        // Check if medication is scheduled for 'Everyday' or the specific day
+        ('Everyday' IN r.days OR $currentDay IN r.days)
         // Then check time window
-        AND scheduleMinutes > $nowMinutes - 1 
-        AND scheduleMinutes < $endMinutes + 1
+        AND scheduleMinutes >= $nowMinutes 
+        AND scheduleMinutes <= $endMinutes
       RETURN DISTINCT
         u.id as userId,
         m.Name as name,
@@ -747,7 +747,8 @@ export async function storeConversation(phoneNumber: string, data: Partial<Conve
         templateType: $templateType,
         templateContent: $templateContent,
         response: $response,
-        buttonResponse: $buttonResponse
+        buttonResponseText: $buttonResponseText,
+        buttonResponsePayload: $buttonResponsePayload
       })
       CREATE (u)-[:HAS_CONVERSATION]->(c)
       RETURN c
@@ -760,7 +761,8 @@ export async function storeConversation(phoneNumber: string, data: Partial<Conve
       templateType: data.templateType || null,
       templateContent: data.templateContent || null,
       response: data.response || null,
-      buttonResponse: data.buttonResponse || null
+      buttonResponseText: data.buttonResponse?.text || null,
+      buttonResponsePayload: data.buttonResponse?.payload || null
     })
     
     return result.records[0]?.get('c').properties
