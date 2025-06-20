@@ -2,10 +2,18 @@ import { NextResponse } from "next/server";
 import { getMedicationsDue, initNeo4j } from "@/lib/neo4j";
 import { NotificationType, notificationTemplates } from '@/config/notificationTemplates';
 import twilio from 'twilio';
-import { RedisMemory } from '../../../../lib/redis';
+import { RedisMemory } from '@/lib/redis';
 
 // Initialize Redis
-const memory = new RedisMemory();
+let memory: RedisMemory | null = null;
+
+async function getRedisMemory() {
+  if (!memory) {
+    memory = new RedisMemory();
+    await memory.getConnection(); // Ensure we're connected
+  }
+  return memory;
+}
 
 // Initialize Neo4j
 initNeo4j();
@@ -35,7 +43,8 @@ async function storeReminderInRedis(phoneNumber: string, medications: string[]) 
   };
   
   try {
-    await memory.save(
+    const redis = await getRedisMemory();
+    await redis.save(
       { thread_id: `chat:phone:${phoneNumber.replace(/[^0-9]/g, '')}` },
       [reminderMessage]
     );

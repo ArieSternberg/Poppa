@@ -35,7 +35,7 @@ export class RedisMemory {
     this.client = createClient({ url: REDIS_URL });
   }
 
-  private async getConnection() {
+  async getConnection() {
     if (!this.client.isOpen) {
       await this.client.connect();
     }
