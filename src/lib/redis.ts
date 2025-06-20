@@ -1,5 +1,4 @@
-import { createClient } from 'redis';
-import type { RedisClientType } from 'redis';
+import type { RedisClientType, createClient as createRedisClient } from 'redis';
 
 interface Message {
   role: 'user' | 'agent';
@@ -31,11 +30,22 @@ export class RedisMemory {
   private ttl = 60 * 60 * 24; // 24 hours
 
   constructor() {
+    if (typeof window !== 'undefined') {
+      throw new Error('RedisMemory can only be instantiated on the server side');
+    }
     const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
-    this.client = createClient({ url: REDIS_URL });
+    // We need to use dynamic import for redis
+    import('redis').then(redis => {
+      this.client = redis.createClient({ url: REDIS_URL });
+    });
   }
 
   async getConnection() {
+    if (!this.client) {
+      const redis = await import('redis');
+      const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
+      this.client = redis.createClient({ url: REDIS_URL });
+    }
     if (!this.client.isOpen) {
       await this.client.connect();
     }
