@@ -1,4 +1,5 @@
 import { createClient } from 'redis';
+import type { RedisClientType } from 'redis';
 
 interface Message {
   role: 'user' | 'agent';
@@ -26,7 +27,7 @@ interface RedisKey {
 }
 
 export class RedisMemory {
-  private client;
+  private client: RedisClientType;
   private ttl = 60 * 60 * 24; // 24 hours
 
   constructor() {
