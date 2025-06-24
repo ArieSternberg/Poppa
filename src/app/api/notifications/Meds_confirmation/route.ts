@@ -65,7 +65,7 @@ async function sendWhatsAppNotification(phoneNumber: string, medications: string
   });
 
   // Format medications with each on a new line
-  const formattedMedications = medications.join('\n');
+  const formattedMedications = medications.join('\\n');
 
   // Store reminder in Redis before sending
   await storeReminderInRedis(phoneNumber, medications);
