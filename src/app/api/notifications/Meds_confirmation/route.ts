@@ -72,14 +72,12 @@ async function sendWhatsAppNotification(user: { firstName: string, phone: string
   const from = `whatsapp:${fromNumber}`;
 
   // Get the appropriate template for AM/PM
-  const notificationType = timeWindow === 'AM' 
+  const templateType = timeWindow === 'AM' 
     ? NotificationType.MEDICATION_CONFIRMATION_AM 
     : NotificationType.MEDICATION_CONFIRMATION_PM;
   
-  const template = notificationTemplates[notificationType];
-  if (!template?.contentSid) {
-    throw new Error(`No content SID found for ${notificationType}`);
-  }
+  // Get the content SID from the templates
+  const { contentSid } = notificationTemplates[templateType];
 
   // Create content variables with user's first name
   const contentVariables = JSON.stringify({
@@ -88,7 +86,7 @@ async function sendWhatsAppNotification(user: { firstName: string, phone: string
 
   try {
     const message = await client.messages.create({
-      contentSid: template.contentSid,
+      contentSid,
       from,
       to,
       contentVariables,
