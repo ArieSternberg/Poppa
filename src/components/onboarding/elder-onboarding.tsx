@@ -98,11 +98,11 @@ export function ElderOnboardingComponent({ onBack, onComplete }: ElderOnboarding
 
   const handleAddMedication = () => {
     console.log('Adding medication with data:', currentMedication)
-    if (currentMedication.Name) {
+    if (currentMedication.Name && currentMedication.id) { // Add check for ID
       setMedications([...medications, currentMedication])
       console.log('Updated medications list:', [...medications, currentMedication])
       setCurrentMedication({
-        id: '',
+        id: '', // Reset ID
         Name: '',
         brandName: '',
         genericName: '',
@@ -116,6 +116,9 @@ export function ElderOnboardingComponent({ onBack, onComplete }: ElderOnboarding
       setSearchQuery('')
       setSearchResults([])
       setStep(2) // Back to medication search
+    } else {
+      console.error('Attempted to add medication without ID or Name:', currentMedication)
+      toast.error("Invalid medication data")
     }
   }
 
@@ -149,20 +152,16 @@ export function ElderOnboardingComponent({ onBack, onComplete }: ElderOnboarding
 
       // Link to existing medications
       const session = await getSession()
+      
+      console.log('Linking medications:', medications)
+      
       for (const med of medications) {
         try {
-          // Create or find medication node and get its elementId
-          const result = await session.run(`
-            MERGE (m:Medication {Name: $name})
-            ON CREATE SET m.id = randomUUID()
-            RETURN elementId(m) as id, m
-          `, { name: med.Name })
-
-          if (!result.records || result.records.length === 0) {
-            throw new Error('Failed to create medication')
+          if (!med.id) {
+            console.error('Missing medication ID for:', med.Name)
+            continue
           }
 
-          const medicationId = result.records[0].get('id').toString()
           const schedule = {
             schedule: med.schedule,
             pillsPerDose: med.pillsPerDose,
@@ -171,7 +170,13 @@ export function ElderOnboardingComponent({ onBack, onComplete }: ElderOnboarding
             dosage: `${med.dosage}mg`
           }
 
-          const linkResult = await linkUserToMedication(user.id, medicationId, schedule)
+          console.log('Linking medication:', {
+            userId: user.id,
+            medicationId: med.id,
+            schedule
+          })
+
+          const linkResult = await linkUserToMedication(user.id, med.id, schedule)
           if (!linkResult) {
             throw new Error(`Failed to link medication: ${med.Name}`)
           }
