@@ -275,8 +275,7 @@ export async function linkUserToMedication(userId: string, medicationId: string,
     // First verify the user and medication exist
     const verifyQuery = `
         MATCH (u:User {id: $userId})
-        MATCH (m:Medication)
-        WHERE elementId(m) = $medicationId
+        MATCH (m:Medication {id: $medicationId})
         RETURN u, m
     `
     
@@ -315,8 +314,7 @@ export async function linkUserToMedication(userId: string, medicationId: string,
         // Create or update the TAKES relationship
         const cypher = `
             MATCH (u:User {id: $userId})
-            MATCH (m:Medication)
-            WHERE elementId(m) = $medicationId
+            MATCH (m:Medication {id: $medicationId})
             MERGE (u)-[r:TAKES]->(m)
             SET r.schedule = $schedule.schedule,
                 r.pillsPerDose = $schedule.pillsPerDose,
@@ -584,18 +582,27 @@ export async function searchMedications(query: string): Promise<DrugResult[]> {
     const cypher = `
         MATCH (m:Medication)
         WHERE toLower(m.Name) CONTAINS toLower($query)
-        RETURN m.id as id, m.Name as Name, m.brandName as brandName, m.genericName as genericName
+        WITH m
+        SET m.id = CASE WHEN m.id IS NULL THEN randomUUID() ELSE m.id END
+        RETURN 
+            m.id as id,
+            m.Name as Name,
+            m.brandName as brandName,
+            m.genericName as genericName
         LIMIT 5
     `
     const session = await getSession()
     try {
+        console.log('Executing medication search with query:', query)
         const result = await session.run(cypher, { query })
-        return result.records.map(record => ({
+        const medications = result.records.map(record => ({
             id: record.get('id'),
             Name: record.get('Name'),
             brandName: record.get('brandName') || '',
             genericName: record.get('genericName') || ''
         }))
+        console.log('Search results from Neo4j:', medications)
+        return medications
     } finally {
         await session.close()
     }

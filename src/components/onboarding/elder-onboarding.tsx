@@ -83,14 +83,17 @@ export function ElderOnboardingComponent({ onBack, onComplete }: ElderOnboarding
 
     try {
       const results = await searchMedications(query)
-      console.log('Search results with IDs:', results)
+      console.log('Raw search results:', results)
+      if (!results.some(r => r.id)) {
+        console.error('Search results missing IDs:', results)
+      }
       setSearchResults(results)
       if (results.length === 0) {
         setError("Can't find that medication, sorry")
       }
     } catch (err) {
       setError("Can't find that medication, sorry")
-      console.error(err)
+      console.error('Search error:', err)
     } finally {
       setIsLoading(false)
     }
@@ -309,7 +312,14 @@ export function ElderOnboardingComponent({ onBack, onComplete }: ElderOnboarding
                 setSelectedDrug(drug.Name)
                 setCurrentMedication({
                   ...currentMedication,
-                  id: drug.id,
+                  id: drug.id || '',  // Ensure we have a string, not null
+                  Name: drug.Name,
+                  brandName: drug.brandName || '',
+                  genericName: drug.genericName || ''
+                })
+                console.log('Updated current medication:', {
+                  ...currentMedication,
+                  id: drug.id || '',
                   Name: drug.Name,
                   brandName: drug.brandName || '',
                   genericName: drug.genericName || ''
