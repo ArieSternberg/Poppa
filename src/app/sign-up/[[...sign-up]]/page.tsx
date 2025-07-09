@@ -183,6 +183,27 @@ export default function Page() {
             throw new Error('Failed to create user profile')
           }
 
+          // Send welcome notification
+          try {
+            const response = await fetch('/api/notifications/welcome_caretaker', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                phoneNumber: user.primaryPhoneNumber?.phoneNumber || '',
+                userName: user.firstName || ''
+              }),
+            });
+
+            if (!response.ok) {
+              console.error('Failed to send welcome notification:', await response.text());
+            }
+          } catch (error) {
+            console.error('Error sending welcome notification:', error);
+            // Don't throw here, we want to continue even if notification fails
+          }
+
           // Create relationship with elder if exists
           const elderConnection = JSON.parse(localStorage.getItem('elderConnection') || '{}')
           if (elderConnection.elderUser) {
