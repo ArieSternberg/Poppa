@@ -3,9 +3,13 @@ import { getUsersWithMedicationsInWindow, initNeo4j } from "@/lib/neo4j";
 import { NotificationType, notificationTemplates } from '@/config/notificationTemplates';
 import twilio from 'twilio';
 import { RedisMemory } from '@/lib/redis';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 
 // Initialize Redis
 let memory: RedisMemory | null = null;
+
+// Define the timezone we're using (EST)
+const TIMEZONE = 'America/New_York';
 
 async function getRedisMemory() {
   if (!memory) {
@@ -112,8 +116,10 @@ export async function GET(request: Request) {
     const testMode = url.searchParams.get('test');
     const testTime = url.searchParams.get('time');
     
-    let currentHour = now.getHours();
-    let currentMinute = now.getMinutes();
+    // Convert UTC to EST for time comparison
+    const estNow = toZonedTime(now, TIMEZONE);
+    let currentHour = estNow.getHours();
+    let currentMinute = estNow.getMinutes();
 
     // Override time if in test mode
     if (testMode === 'true' && testTime) {
@@ -148,7 +154,8 @@ export async function GET(request: Request) {
       data: {
         timeWindow,
         currentTime: now.toISOString(),
-        localTime: now.toLocaleTimeString()
+        estTime: formatInTimeZone(estNow, TIMEZONE, 'yyyy-MM-dd HH:mm:ss'),
+        localTime: formatInTimeZone(estNow, TIMEZONE, 'h:mm:ss a')
       }
     }));
 
