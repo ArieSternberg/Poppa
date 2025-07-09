@@ -1,7 +1,8 @@
 export enum NotificationType {
   WELCOME_ELDER = 'WELCOME_ELDER',
   WELCOME_CARETAKER = 'WELCOME_CARETAKER',
-  MEDICATION_REMINDER = 'MEDICATION_REMINDER',
+  MEDICATION_CONFIRMATION_AM = 'MEDICATION_CONFIRMATION_AM',
+  MEDICATION_CONFIRMATION_PM = 'MEDICATION_CONFIRMATION_PM',
   UNREGISTERED_USER = 'UNREGISTERED_USER',
   INVITE_FAMILY_FIRST = 'INVITE_FAMILY_FIRST',
   INVITE_FAMILY_SECOND = 'INVITE_FAMILY_SECOND'
@@ -21,9 +22,13 @@ export const notificationTemplates: Record<NotificationType, NotificationTemplat
     contentSid: process.env.TWILIO_WELCOME_CARETAKER_CONTENT_SID!,
     description: 'Welcome message sent to new caretaker users'
   },
-  [NotificationType.MEDICATION_REMINDER]: {
-    contentSid: process.env.TWILIO_MEDICATION_CONTENT_SID!,
-    description: 'Medication reminder notification'
+  [NotificationType.MEDICATION_CONFIRMATION_AM]: {
+    contentSid: process.env.TWILIO_MED_CONFIRMATION_AM_SID!,
+    description: 'Morning medication confirmation check'
+  },
+  [NotificationType.MEDICATION_CONFIRMATION_PM]: {
+    contentSid: process.env.TWILIO_MED_CONFIRMATION_PM_SID!,
+    description: 'Evening medication confirmation check'
   },
   [NotificationType.UNREGISTERED_USER]: {
     description: 'Welcome message sent to unregistered users'

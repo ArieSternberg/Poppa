@@ -868,3 +868,68 @@ export async function getUserMetadata(phoneNumber: string): Promise<UserMetadata
     await session.close()
   }
 } 
+
+export async function getUsersWithMedicationsInWindow(timeWindow: 'AM' | 'PM'): Promise<Array<{userId: string, firstName: string, phone: string}>> {
+  let session;
+  try {
+    if (!driver) {
+      driver = initNeo4j();
+    }
+    session = driver.session();
+    
+    const currentDay = new Date().toLocaleDateString('en-US', { weekday: 'short' });
+    
+    // Convert day abbreviations
+    const dayMap: { [key: string]: string } = {
+      'Mon': 'M',
+      'Tue': 'T',
+      'Wed': 'W',
+      'Thu': 'Th',
+      'Fri': 'F',
+      'Sat': 'Sa',
+      'Sun': 'Su'
+    };
+
+    // Define time windows in minutes since midnight
+    const timeWindows = {
+      AM: { start: 0, end: 720 }, // 12:00 AM to 12:00 PM
+      PM: { start: 720, end: 1440 } // 12:00 PM to 11:59 PM
+    };
+
+    const window = timeWindows[timeWindow];
+
+    const result = await session.run(`
+      MATCH (u:User)-[r:TAKES]->(m:Medication)
+      UNWIND r.schedule as time
+      WITH u, m, r, time,
+        toInteger(split(time, ':')[0]) * 60 + toInteger(split(time, ':')[1]) as scheduleMinutes
+      WHERE 
+        // Check if medication is scheduled for 'Everyday' or the specific day
+        ('Everyday' IN r.days OR $currentDay IN r.days)
+        // Check if medication falls within the time window
+        AND scheduleMinutes >= $windowStart 
+        AND scheduleMinutes < $windowEnd
+      RETURN DISTINCT
+        u.id as userId,
+        u.firstName as firstName,
+        u.phone as phone
+    `, {
+      currentDay: dayMap[currentDay],
+      windowStart: window.start,
+      windowEnd: window.end
+    });
+
+    return result.records.map(record => ({
+      userId: record.get('userId'),
+      firstName: record.get('firstName'),
+      phone: record.get('phone')
+    }));
+  } catch (error) {
+    console.error('Error in getUsersWithMedicationsInWindow:', error);
+    throw error;
+  } finally {
+    if (session) {
+      await session.close();
+    }
+  }
+} 

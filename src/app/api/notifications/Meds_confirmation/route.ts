@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getMedicationsDue, initNeo4j } from "@/lib/neo4j";
+import { getUsersWithMedicationsInWindow, initNeo4j } from "@/lib/neo4j";
 import { NotificationType, notificationTemplates } from '@/config/notificationTemplates';
 import twilio from 'twilio';
 import { RedisMemory } from '@/lib/redis';
@@ -10,7 +10,7 @@ let memory: RedisMemory | null = null;
 async function getRedisMemory() {
   if (!memory) {
     memory = new RedisMemory();
-    await memory.getConnection(); // Ensure we're connected
+    await memory.getConnection();
   }
   return memory;
 }
@@ -22,24 +22,24 @@ initNeo4j();
 console.log('Debug - Environment Variables:', {
   TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID?.slice(0, 5) + '...',
   HAS_AUTH_TOKEN: !!process.env.TWILIO_AUTH_TOKEN,
-  HAS_CONTENT_SID: !!process.env.TWILIO_MEDICATION_CONTENT_SID,
+  HAS_AM_CONTENT_SID: !!process.env.TWILIO_MED_CONFIRMATION_AM_SID,
+  HAS_PM_CONTENT_SID: !!process.env.TWILIO_MED_CONFIRMATION_PM_SID,
   HAS_MESSAGING_SERVICE_SID: !!process.env.TWILIO_MESSAGING_SERVICE_SID
 });
 
 // Twilio setup
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
-const contentSid = notificationTemplates[NotificationType.MEDICATION_REMINDER].contentSid;
 const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
 const fromNumber = "+13057605575";
 
 // Initialize Twilio client
 const client = twilio(accountSid, authToken);
 
-async function storeReminderInRedis(phoneNumber: string, medications: string[]) {
+async function storeReminderInRedis(phoneNumber: string, timeWindow: 'AM' | 'PM') {
   const reminderMessage = {
     role: "agent" as const,
-    content: `Hey, did you take your vitamins today?\n${medications.join('\n')}`
+    content: `Did you take your ${timeWindow === 'AM' ? 'morning' : 'afternoon'} medication?`
   };
   
   try {
@@ -53,29 +53,34 @@ async function storeReminderInRedis(phoneNumber: string, medications: string[]) 
   }
 }
 
-async function sendWhatsAppNotification(phoneNumber: string, medications: string[]) {
+async function sendWhatsAppNotification(user: { firstName: string, phone: string }, timeWindow: 'AM' | 'PM') {
   console.log('Debug - Sending WhatsApp notification:', {
-    phoneNumber,
-    medications,
+    firstName: user.firstName,
+    phone: user.phone,
+    timeWindow,
     accountSid,
     hasAuthToken: !!authToken,
-    contentSid,
     messagingServiceSid,
     fromNumber
   });
 
   // Store reminder in Redis before sending
-  await storeReminderInRedis(phoneNumber, medications);
+  await storeReminderInRedis(user.phone, timeWindow);
 
   // Format phone numbers for WhatsApp
-  const to = `whatsapp:${phoneNumber}`;
+  const to = `whatsapp:${user.phone}`;
   const from = `whatsapp:${fromNumber}`;
 
-  // Create content variables matching the template format
+  // Get the appropriate template for AM/PM
+  const notificationType = timeWindow === 'AM' 
+    ? NotificationType.MEDICATION_CONFIRMATION_AM 
+    : NotificationType.MEDICATION_CONFIRMATION_PM;
+  
+  const contentSid = notificationTemplates[notificationType].contentSid;
+
+  // Create content variables with user's first name
   const contentVariables = JSON.stringify({
-    "1": medications[0] || "",
-    "2": medications[1] || "",
-    "3": medications[2] || ""
+    "1": user.firstName
   });
 
   try {
@@ -99,50 +104,76 @@ async function sendWhatsAppNotification(phoneNumber: string, medications: string
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const now = new Date();
+    const url = new URL(request.url);
+    const testMode = url.searchParams.get('test');
+    const testTime = url.searchParams.get('time');
+    
+    let currentHour = now.getHours();
+    let currentMinute = now.getMinutes();
+
+    // Override time if in test mode
+    if (testMode === 'true' && testTime) {
+      const [hour, minute] = testTime.split(':').map(Number);
+      currentHour = hour;
+      currentMinute = minute;
+      console.log('Test mode activated with time:', testTime);
+    }
+
+    // Determine if it's AM or PM check time
+    let timeWindow: 'AM' | 'PM' | null = null;
+    if (currentHour === 11 && currentMinute === 59) {
+      timeWindow = 'AM';
+    } else if (currentHour === 22 && currentMinute === 0) {
+      timeWindow = 'PM';
+    }
+
+    // Allow forcing time window in test mode
+    if (testMode === 'true' && !timeWindow) {
+      timeWindow = currentHour < 12 ? 'AM' : 'PM';
+    }
+
+    if (!timeWindow) {
+      return NextResponse.json({ 
+        success: true, 
+        message: "Not medication check time" 
+      });
+    }
+
     console.warn('NOTIFICATION_DEBUG', JSON.stringify({
       event: 'start_check',
-      timestamp: {
+      data: {
+        timeWindow,
         currentTime: now.toISOString(),
-        localTime: now.toLocaleTimeString(),
-        utcTime: now.toUTCString()
+        localTime: now.toLocaleTimeString()
       }
     }));
 
-    // Initialize Neo4j at the start of the request
-    initNeo4j();
+    // Get all users who have medications in the current time window
+    const usersWithMeds = await getUsersWithMedicationsInWindow(timeWindow);
     
-    // Get all medications due in the next 15 minutes
-    const medicationsDue = await getMedicationsDue(15);
-    
-    if (medicationsDue.length === 0) {
+    if (usersWithMeds.length === 0) {
       console.warn('NOTIFICATION_DEBUG', JSON.stringify({
-        event: 'no_medications_due',
+        event: 'no_users_with_medications',
         timestamp: new Date().toISOString()
       }));
       return NextResponse.json({ success: true, results: [] });
     }
-    
-    // Group medications by user
-    const userMedications = new Map<string, { phone: string, medications: string[] }>();
-    
-    medicationsDue.forEach(med => {
-      if (!userMedications.has(med.userId)) {
-        userMedications.set(med.userId, { phone: med.phone, medications: [] });
-      }
-      userMedications.get(med.userId)?.medications.push(med.Name);
-    });
 
-    // Send notifications for each user
-    const notifications = Array.from(userMedications.entries()).map(async ([userId, data]) => {
+    // Send notifications to each user
+    const notifications = usersWithMeds.map(async (user) => {
       try {
-        await sendWhatsAppNotification(data.phone, data.medications);
-        return { userId, status: 'success' };
+        await sendWhatsAppNotification(user, timeWindow!);
+        return { userId: user.userId, status: 'success' };
       } catch (error) {
         console.error('Failed to send notification:', error);
-        return { userId, status: 'error', error: error instanceof Error ? error.message : String(error) };
+        return { 
+          userId: user.userId, 
+          status: 'error', 
+          error: error instanceof Error ? error.message : String(error) 
+        };
       }
     });
 
@@ -151,6 +182,7 @@ export async function GET() {
     console.warn('NOTIFICATION_DEBUG', JSON.stringify({
       event: 'notifications_complete',
       data: {
+        timeWindow,
         totalUsers: results.length,
         successCount: results.filter(r => r.status === 'success').length,
         errorCount: results.filter(r => r.status === 'error').length,
