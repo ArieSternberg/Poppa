@@ -81,19 +81,29 @@ export function AddMedicationComponent() {
     if (!user) return
 
     try {
-      // Create or find medication node and get its elementId
+      // Create or find medication node and get its id
       const session = await getSession()
       const result = await session.run(`
         MERGE (m:Medication {Name: $name})
-        ON CREATE SET m.id = randomUUID()
-        RETURN elementId(m) as id, m
-      `, { name: currentMedication.Name })
+        WITH m
+        SET m.id = CASE WHEN m.id IS NULL THEN randomUUID() ELSE m.id END,
+            m.brandName = $brandName,
+            m.genericName = $genericName
+        RETURN m.id as id, m
+      `, { 
+        name: currentMedication.Name,
+        brandName: currentMedication.brandName || '',
+        genericName: currentMedication.genericName || ''
+      })
 
       if (!result.records || result.records.length === 0) {
         throw new Error('Failed to create medication')
       }
 
-      const medicationId = result.records[0].get('id').toString()
+      const medicationId = result.records[0].get('id')
+      if (!medicationId) {
+        throw new Error('Failed to get medication ID')
+      }
 
       // Create relationship with schedule details
       const schedule = {
@@ -111,6 +121,7 @@ export function AddMedicationComponent() {
         throw new Error('Failed to link medication')
       }
 
+      await session.close()
       toast.success("Medication added successfully!")
       router.push('/dashboard')
     } catch (error) {
