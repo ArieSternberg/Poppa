@@ -18,9 +18,9 @@ interface ElderData {
   id: string
   firstName: string
   lastName: string
-  age: number
-  role: 'Elder'
-  phone: string
+  role: 'Elder' | 'Senior'
+  age?: number
+  phone?: string
 }
 
 interface Medication {

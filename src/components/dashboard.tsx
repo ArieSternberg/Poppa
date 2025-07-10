@@ -36,7 +36,7 @@ interface ScheduledDose {
 
 interface UserData {
   id: string
-  role: 'Elder' | 'Caretaker'
+  role: 'Elder' | 'Senior' | 'Caretaker'
   name?: string
   phone?: string
 }
@@ -239,7 +239,7 @@ export function DashboardComponent() {
               Welcome, {user?.firstName || "User"}!
             </motion.h1>
             <div className="flex gap-4">
-              {userData?.role === 'Elder' && (
+              {(userData?.role === 'Elder' || userData?.role === 'Senior') && (
                 <Button 
                   onClick={() => router.push('/profile')}
                   className="bg-[#00856A] hover:bg-[#006B55] text-white"
@@ -268,7 +268,7 @@ export function DashboardComponent() {
             </div>
           </div>
 
-          {userData?.role === 'Elder' && (
+          {(userData?.role === 'Elder' || userData?.role === 'Senior') && (
             <>
               <Card>
                 <CardHeader>
