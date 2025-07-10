@@ -517,7 +517,7 @@ export async function getCaretakerElders(caretakerId: string) {
         MATCH (c:User:Caretaker {id: $caretakerId})-[r:CARES_FOR]->(e:User:Elder)
         WITH e, CASE 
             WHEN e.age IS NULL THEN 0 
-            WHEN e.age IS NOT NULL AND NOT toInteger(e.age) IS NULL THEN toInteger(e.age)
+            WHEN e.age IS NOT NULL THEN e.age
             ELSE 0 
         END as calculatedAge
         RETURN {
@@ -535,8 +535,11 @@ export async function getCaretakerElders(caretakerId: string) {
         console.log('Raw Neo4j result:', result.records)
         const mappedResults = result.records.map(record => {
             const elder = record.get('elder')
-            console.log('Elder properties:', elder)
-            return elder
+            // Handle Neo4j integer type for age
+            return {
+                ...elder,
+                age: elder.age && typeof elder.age === 'object' && 'low' in elder.age ? elder.age.low : (elder.age || 0)
+            }
         })
         console.log('Mapped results:', mappedResults)
         return mappedResults
