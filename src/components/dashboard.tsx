@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useUser, useClerk } from '@clerk/nextjs'
 import { motion } from 'framer-motion'
-import { Settings, LogOut, Clock, Trash2, User, Pencil } from 'lucide-react'
+import { Settings, LogOut, Clock, Trash2, User, Pencil, Plus } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -340,12 +340,10 @@ export function DashboardComponent() {
           {userData?.role === 'Caretaker' && (
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <CardTitle>Your Elders</CardTitle>
-                <Button
-                  onClick={() => setShowAddElder(true)}
-                  className="bg-[#00856A] hover:bg-[#006B55] text-white"
-                >
-                  Add Elder
+                <CardTitle>Your Seniors</CardTitle>
+                <Button variant="outline" size="sm" onClick={() => setShowAddElder(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Senior
                 </Button>
               </CardHeader>
               <CardContent>
@@ -355,7 +353,7 @@ export function DashboardComponent() {
                   ))}
                   {elders.length === 0 && (
                     <p className="text-gray-500 col-span-2 text-center py-4">
-                      No elders added yet. Click &quot;Add Elder&quot; to connect with an elder.
+                      No seniors added yet. Click &quot;Add Senior&quot; to connect with a senior.
                     </p>
                   )}
                 </div>

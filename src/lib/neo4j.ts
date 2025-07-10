@@ -187,7 +187,7 @@ export async function createUser(userId: string, clerkData: {
     // Different Cypher query based on role
     const cypher = `
         MERGE (u:User {id: $userId})
-        ${profileData?.role === 'Elder' ? 'SET u:Elder' : profileData?.role === 'Caretaker' ? 'SET u:Caretaker' : ''}
+        ${profileData?.role === 'Senior' ? 'SET u:Elder' : profileData?.role === 'Caretaker' ? 'SET u:Caretaker' : ''}
         SET u = $userProfile
         RETURN u
     `
@@ -514,7 +514,7 @@ export async function updateUser(userId: string, updateData: {
 export async function getCaretakerElders(caretakerId: string) {
     const cypher = `
         MATCH (c:User:Caretaker {id: $caretakerId})-[r:CARES_FOR]->(e:User:Elder)
-        RETURN e
+        RETURN e {.*}
     `
     const session = await getSession()
     try {
@@ -529,7 +529,7 @@ export async function getCaretakerElders(caretakerId: string) {
 export async function getElderMedications(elderId: string) {
     const cypher = `
         MATCH (u:User:Elder {id: $elderId})-[r:TAKES]->(m:Medication)
-        RETURN m, r
+        RETURN m {.*}, r {.*}
     `
     const session = await getSession()
     try {

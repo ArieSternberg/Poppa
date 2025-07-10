@@ -7,7 +7,7 @@ import { CaretakerOnboardingComponent } from './caretaker-onboarding'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@clerk/nextjs'
 
-export type Role = 'Elder' | 'Caretaker' | null
+export type Role = 'Senior' | 'Caretaker' | null
 
 export function RoleSelectionComponent() {
   const [selectedRole, setSelectedRole] = useState<Role>(null)
@@ -33,7 +33,7 @@ export function RoleSelectionComponent() {
     router.push('/sign-up')
   }
 
-  if (selectedRole === 'Elder') {
+  if (selectedRole === 'Senior') {
     return <ElderOnboardingComponent onBack={() => setSelectedRole(null)} onComplete={handleOnboardingComplete} />
   }
 
@@ -70,9 +70,9 @@ export function RoleSelectionComponent() {
           <motion.div
             whileHover={{ scale: 1.02 }}
             className="p-4 rounded-lg border cursor-pointer hover:bg-gray-50"
-            onClick={() => handleRoleSelect('Elder')}
+            onClick={() => handleRoleSelect('Senior')}
           >
-            <h3 className="text-lg font-medium">Elder</h3>
+            <h3 className="text-lg font-medium">Senior</h3>
             <p className="text-gray-600">I need help managing my medications</p>
           </motion.div>
           <motion.div

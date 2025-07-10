@@ -30,7 +30,7 @@ export default function Page() {
       }
 
       try {
-        if (selectedRole === 'Elder') {
+        if (selectedRole === 'Senior') {
           const elderProfile = JSON.parse(localStorage.getItem('elderProfile') || '{}')
           const elderMedications = JSON.parse(localStorage.getItem('elderMedications') || '[]')
           

@@ -33,7 +33,7 @@ export interface ElderUser {
   firstName: string
   lastName: string
   age: number
-  role: 'Elder'
+  role: 'Senior'
   phone: string
 }
 

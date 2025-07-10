@@ -44,12 +44,12 @@ export function AddElderModal({ isOpen, onClose, caretakerId, onElderAdded }: Ad
     setError(null)
     try {
       const elder = await findUserByPhone(phoneNumber)
-      if (elder && elder.role === 'Elder') {
+      if (elder && elder.role === 'Senior') {
         setElderUser(elder)
         setError(null)
         setShowInvite(false)
       } else if (elder) {
-        setError('This user is not registered as an elder')
+        setError('This user is not registered as a senior')
         setElderUser(null)
         setShowInvite(false)
       } else {
@@ -110,9 +110,9 @@ export function AddElderModal({ isOpen, onClose, caretakerId, onElderAdded }: Ad
         animate={{ opacity: 1, scale: 1 }}
         className="bg-white rounded-lg p-8 max-w-md w-full mx-4 space-y-4"
       >
-        <h2 className="text-2xl font-bold text-center">Add an Elder</h2>
+        <h2 className="text-2xl font-bold text-center">Add a Senior</h2>
         <p className="text-gray-600 text-center">
-          Enter the elder&apos;s phone number to connect with them
+          Enter the senior&apos;s phone number to connect with them
         </p>
 
         <div className="space-y-4">
@@ -172,9 +172,9 @@ export function AddElderModal({ isOpen, onClose, caretakerId, onElderAdded }: Ad
             >
               <Separator className="my-4" />
               <div className="space-y-2">
-                <h3 className="text-lg font-semibold">Invite Your Elder</h3>
+                <h3 className="text-lg font-semibold">Invite Your Senior</h3>
                 <p className="text-sm text-gray-600">
-                  Your elder hasn&apos;t registered yet? Send them an invitation to join Poppa.AI Med Tracking.
+                  Your senior hasn&apos;t registered yet? Send them an invitation to join Poppa.AI Med Tracking.
                 </p>
                 <div className="relative">
                   <Input
