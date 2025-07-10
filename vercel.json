@@ -2,11 +2,11 @@
   "crons": [
     {
       "path": "/api/notifications/Meds_confirmation",
-      "schedule": "59 16 * * *"
+      "schedule": "59 15 * * *"
     },
     {
       "path": "/api/notifications/Meds_confirmation",
-      "schedule": "0 3 * * *"
+      "schedule": "0 2 * * *"
     }
   ]
 } 
