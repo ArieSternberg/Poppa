@@ -431,7 +431,8 @@ export async function findUserByPhone(phoneNumber: string) {
 export async function createCaretakerRelationship(caretakerId: string, elderId: string) {
     const cypher = `
         MATCH (c:User:Caretaker {id: $caretakerId})
-        MATCH (e:User:Elder {id: $elderId})
+        MATCH (e:User {id: $elderId})
+        WHERE e:Elder OR e.role = 'Senior'
         MERGE (c)-[r:CARES_FOR]->(e)
         SET r.createdAt = datetime()
         RETURN r
@@ -486,7 +487,7 @@ export async function updateUser(userId: string, updateData: {
         CALL {
             WITH u
             WITH u, $updateData.role as role
-            FOREACH (x IN CASE WHEN role = 'Elder' THEN [1] ELSE [] END | SET u:Elder)
+            FOREACH (x IN CASE WHEN role = 'Senior' THEN [1] ELSE [] END | SET u:Elder)
             FOREACH (x IN CASE WHEN role = 'Caretaker' THEN [1] ELSE [] END | SET u:Caretaker)
         }
         RETURN u
@@ -514,7 +515,8 @@ export async function updateUser(userId: string, updateData: {
 export async function getCaretakerElders(caretakerId: string) {
     console.log('Fetching elders for caretaker:', caretakerId)
     const cypher = `
-        MATCH (c:User:Caretaker {id: $caretakerId})-[r:CARES_FOR]->(e:User:Elder)
+        MATCH (c:User:Caretaker {id: $caretakerId})-[r:CARES_FOR]->(e:User)
+        WHERE e:Elder OR e.role = 'Senior'
         WITH e, CASE 
             WHEN e.age IS NULL THEN 0 
             WHEN e.age IS NOT NULL THEN e.age
@@ -551,7 +553,8 @@ export async function getCaretakerElders(caretakerId: string) {
 // Get elder's medications by ID (for caretaker view)
 export async function getElderMedications(elderId: string) {
     const cypher = `
-        MATCH (u:User:Elder {id: $elderId})-[r:TAKES]->(m:Medication)
+        MATCH (u:User {id: $elderId})-[r:TAKES]->(m:Medication)
+        WHERE u:Elder OR u.role = 'Senior'
         RETURN {
             medication: {
                 id: m.id,
@@ -841,9 +844,11 @@ export async function getUserMetadata(phoneNumber: string): Promise<UserMetadata
       
       // Get caretakers
       OPTIONAL MATCH (c:User:Caretaker)-[:CARES_FOR]->(u)
+      WHERE u:Elder OR u.role = 'Senior'
       
       // Get elders (if user is caretaker)
-      OPTIONAL MATCH (u)-[:CARES_FOR]->(e:User:Elder)
+      OPTIONAL MATCH (u)-[:CARES_FOR]->(e:User)
+      WHERE e:Elder OR e.role = 'Senior'
       
       // Get medications
       OPTIONAL MATCH (u)-[r:TAKES]->(m:Medication)
