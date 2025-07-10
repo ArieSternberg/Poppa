@@ -76,7 +76,16 @@ export function DashboardComponent() {
         // If user is a caretaker, fetch their elders
         if (userData.role === 'Caretaker') {
           const eldersList = await getCaretakerElders(user.id)
-          setElders(eldersList)
+          // Map the data to match ElderCard props
+          const mappedElders = eldersList.map(elder => ({
+            id: elder.id,
+            firstName: elder.firstName || '',
+            lastName: elder.lastName || '',
+            age: elder.age || 0,
+            name: `${elder.firstName || ''} ${elder.lastName || ''}`.trim(),
+            phone: elder.phone || ''
+          }))
+          setElders(mappedElders)
         }
       }
     } catch (err) {

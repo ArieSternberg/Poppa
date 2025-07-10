@@ -514,7 +514,13 @@ export async function updateUser(userId: string, updateData: {
 export async function getCaretakerElders(caretakerId: string) {
     const cypher = `
         MATCH (c:User:Caretaker {id: $caretakerId})-[r:CARES_FOR]->(e:User:Elder)
-        RETURN e {.*}
+        RETURN e {
+            .id,
+            .firstName,
+            .lastName,
+            .age,
+            .phone
+        }
     `
     const session = await getSession()
     try {

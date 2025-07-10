@@ -514,11 +514,11 @@ export function ElderOnboardingComponent({ onBack, onComplete }: ElderOnboarding
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2, delay: index * 0.05 }}
-          className="space-y-2 border p-4 rounded-lg"
+          className="space-y-4 border p-4 rounded-lg"
         >
           <Label htmlFor={`time-${index}`}>Dose {index + 1}</Label>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="flex items-center gap-2 flex-wrap">
               <Select
                 value={parseInt(time.split(':')[0]) > 12 
                   ? (parseInt(time.split(':')[0]) - 12).toString() 
@@ -592,7 +592,7 @@ export function ElderOnboardingComponent({ onBack, onComplete }: ElderOnboarding
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mt-2 sm:mt-0">
               <span className="text-sm font-medium">Pills:</span>
               <Select
                 value={currentMedication.pillsPerDose[index].toString()}
