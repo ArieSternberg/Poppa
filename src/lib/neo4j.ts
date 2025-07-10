@@ -515,11 +515,16 @@ export async function getCaretakerElders(caretakerId: string) {
     console.log('Fetching elders for caretaker:', caretakerId)
     const cypher = `
         MATCH (c:User:Caretaker {id: $caretakerId})-[r:CARES_FOR]->(e:User:Elder)
-        RETURN e {
+        WITH e, CASE 
+            WHEN e.age IS NULL THEN 0 
+            WHEN e.age IS NOT NULL AND NOT toInteger(e.age) IS NULL THEN toInteger(e.age)
+            ELSE 0 
+        END as calculatedAge
+        RETURN {
             id: e.id,
             firstName: e.firstName,
             lastName: e.lastName,
-            age: toInteger(e.age),
+            age: calculatedAge,
             phone: e.phone
         } as elder
     `
@@ -544,15 +549,24 @@ export async function getCaretakerElders(caretakerId: string) {
 export async function getElderMedications(elderId: string) {
     const cypher = `
         MATCH (u:User:Elder {id: $elderId})-[r:TAKES]->(m:Medication)
-        RETURN m {.*}, r {.*}
+        RETURN {
+            medication: {
+                id: m.id,
+                name: m.Name
+            },
+            schedule: {
+                schedule: r.schedule,
+                pillsPerDose: r.pillsPerDose,
+                days: r.days,
+                frequency: r.frequency
+            }
+        } as result
     `
     const session = await getSession()
     try {
         const result = await session.run(cypher, { elderId })
-        return result.records.map(record => ({
-            medication: record.get('m').properties,
-            schedule: record.get('r').properties
-        }))
+        console.log('Elder medications result:', result.records)
+        return result.records.map(record => record.get('result'))
     } finally {
         await session.close()
     }
