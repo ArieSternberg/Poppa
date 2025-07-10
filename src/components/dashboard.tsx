@@ -69,22 +69,35 @@ export function DashboardComponent() {
     if (!user) return
     try {
       const userData = await getUser(user.id)
+      console.log('User data from Neo4j:', userData)
+      
       if (!userData) {
         setShowOnboarding(true)
       } else {
         setUserData(userData)
         // If user is a caretaker, fetch their elders
         if (userData.role === 'Caretaker') {
+          console.log('Fetching elders for caretaker:', user.id)
           const eldersList = await getCaretakerElders(user.id)
-          // Map the data to match ElderCard props
-          const mappedElders = eldersList.map(elder => ({
-            id: elder.id,
-            firstName: elder.firstName || '',
-            lastName: elder.lastName || '',
-            age: elder.age || 0,
-            name: `${elder.firstName || ''} ${elder.lastName || ''}`.trim(),
-            phone: elder.phone || ''
-          }))
+          console.log('Elders list from Neo4j:', eldersList)
+          
+          // Map the data to match ElderCard props with fallbacks for missing data
+          const mappedElders = eldersList
+            .filter((elder): elder is NonNullable<typeof elder> => elder != null)
+            .map(elder => {
+              console.log('Mapping elder data:', elder)
+              const mappedElder: Elder = {
+                id: elder.id || '',
+                firstName: elder.firstName || '',
+                lastName: elder.lastName || '',
+                age: typeof elder.age === 'number' ? elder.age : 0,
+                name: `${elder.firstName || ''} ${elder.lastName || ''}`.trim() || 'Unknown',
+                phone: elder.phone || ''
+              }
+              return mappedElder
+            })
+          
+          console.log('Mapped elders data:', mappedElders)
           setElders(mappedElders)
         }
       }

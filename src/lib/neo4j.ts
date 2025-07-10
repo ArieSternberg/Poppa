@@ -512,20 +512,29 @@ export async function updateUser(userId: string, updateData: {
 
 // Get all elders for a caretaker
 export async function getCaretakerElders(caretakerId: string) {
+    console.log('Fetching elders for caretaker:', caretakerId)
     const cypher = `
         MATCH (c:User:Caretaker {id: $caretakerId})-[r:CARES_FOR]->(e:User:Elder)
         RETURN e {
-            .id,
-            .firstName,
-            .lastName,
-            .age,
-            .phone
-        }
+            id: e.id,
+            firstName: e.firstName,
+            lastName: e.lastName,
+            age: toInteger(e.age),
+            phone: e.phone
+        } as elder
     `
+    console.log('Executing Cypher query:', cypher)
     const session = await getSession()
     try {
         const result = await session.run(cypher, { caretakerId })
-        return result.records.map(record => record.get('e').properties)
+        console.log('Raw Neo4j result:', result.records)
+        const mappedResults = result.records.map(record => {
+            const elder = record.get('elder')
+            console.log('Elder properties:', elder)
+            return elder
+        })
+        console.log('Mapped results:', mappedResults)
+        return mappedResults
     } finally {
         await session.close()
     }
