@@ -184,7 +184,7 @@ export function CaretakerOnboardingComponent({ onBack, onComplete }: CaretakerOn
 
               try {
                 const elder = await findUserByPhone(cleanedNumber)
-                if (elder && elder.role === 'Elder') {
+                if (elder && (elder.role === 'Elder' || elder.role === 'Senior')) {
                   setElderConnection(prev => ({
                     ...prev,
                     elderUser: elder
@@ -198,7 +198,7 @@ export function CaretakerOnboardingComponent({ onBack, onComplete }: CaretakerOn
                     phoneNumber: cleanedNumber // Store the full number with +1
                   }))
                 } else if (elder) {
-                  setError('This user is not registered as an elder')
+                  setError('This user is not registered as an elder/senior')
                   setElderConnection(prev => ({
                     ...prev,
                     elderUser: null
